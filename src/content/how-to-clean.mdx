@@ -1,14 +1,17 @@
-## How Cleaning Works in ReStory
-
-The official Steam description establishes the broad repair loop: take a gadget apart, clean it, replace faulty parts, and assemble it again. It also describes an in-depth cleaning and restoration system. This confirms that cleaning components belongs in a normal repair, but the store page does not document a permanent button label, keyboard key, or every workbench gesture.
-
-In practice, cleaning is applied to a part that has been removed from the device and placed into the appropriate work area. It is not an automatic whole-device action that works from any point on the bench. Treat selection, placement, and interaction state as separate checks: a part can look close to a station without actually being accepted by that station.
+import { FaqList } from "@/components/faq-list";
+import { cleaningFaqItems } from "@/data/cleaning";
 
 <div className="quick-answer">
 
 **Quick answer:** Remove the dirty part, move it into the cleaning area by the cup on the upper-right of the workbench, enter the cleaning interaction, and use the scrubbing action. If you hear cleaning sound but see no change, follow the checklist below. The cup location comes from a player clue, not a fixed official control instruction, so use it as a practical lead and verify what the current interface shows.
 
 </div>
+
+## How Cleaning Works in ReStory
+
+The official Steam description establishes the broad repair loop: take a gadget apart, clean it, replace faulty parts, and assemble it again. It also describes an in-depth cleaning and restoration system. This confirms that cleaning components belongs in a normal repair, but the store page does not document a permanent button label, keyboard key, or every workbench gesture.
+
+In practice, cleaning is applied to a part that has been removed from the device and placed into the appropriate work area. It is not an automatic whole-device action that works from any point on the bench. Treat selection, placement, and interaction state as separate checks: a part can look close to a station without actually being accepted by that station.
 
 The Steam store supports the overall sequence. A Steam Community reply supplies the cup-location clue, while the same thread includes reports of sound playing without visible progress. Those reports suggest useful checks; they do not prove one cause.
 
@@ -64,6 +67,10 @@ After restarting, repeat the smallest clean sequence. If it still fails, record 
 8. If the issue continues, report the game version, input method, Pokia component, and the exact point where visual progress stops.
 
 Run the list in order so each attempt changes one likely condition. This helps isolate selection, station, input, or session state and produces a clearer report.
+
+## Frequently Asked Questions
+
+<FaqList items={cleaningFaqItems} />
 
 ## Sources and Evidence Notes
 

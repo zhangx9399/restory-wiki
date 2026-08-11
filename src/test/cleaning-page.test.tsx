@@ -10,11 +10,39 @@ import { absoluteUrl } from "@/lib/structured-data";
 vi.mock("@/content/how-to-clean.mdx", () => ({
   default: () => (
     <>
+      <div className="quick-answer">Quick answer</div>
       <h2 id="how-cleaning-works-in-restory">How Cleaning Works in ReStory</h2>
       <h2 id="cleaning-the-first-pokia-device">Cleaning the First Pokia Device</h2>
       <h2 id="using-the-correct-workbench-area">Using the Correct Workbench Area</h2>
       <h2 id="why-dirt-is-not-disappearing">Why Dirt Is Not Disappearing</h2>
       <h2 id="cleaning-troubleshooting-checklist">Cleaning Troubleshooting Checklist</h2>
+      <h2 id="frequently-asked-questions">Frequently Asked Questions</h2>
+      <div className="faq-list">
+        <details>
+          <summary>Why can I hear cleaning but the dirt stays visible?</summary>
+          <p>
+            The part may not be fully engaged, the wrong object may be selected, the
+            input may not be registering, or the interface may be stuck. Player
+            reports do not establish one universal cause or fix.
+          </p>
+        </details>
+        <details>
+          <summary>Is the cleaning cup on the upper-right of the workbench?</summary>
+          <p>
+            A player-verified reply identifies the cup on the upper-right as the
+            cleaning area. Treat that as a gameplay clue, not a permanent official
+            control description.
+          </p>
+        </details>
+        <details>
+          <summary>Should I reinstall the game immediately?</summary>
+          <p>
+            No. First check the selected part and cleaning area, re-enter the
+            interaction, reload the current session, and restart the game before
+            considering a reinstall.
+          </p>
+        </details>
+      </div>
       <h2 id="sources-and-evidence-notes">Sources and Evidence Notes</h2>
     </>
   ),
@@ -208,6 +236,10 @@ describe("CleaningPage", () => {
 
 describe("cleaning MDX content contract", () => {
   const mdx = readFileSync(join(process.cwd(), "src/content/how-to-clean.mdx"), "utf8");
+  const pageSource = readFileSync(
+    join(process.cwd(), "src/app/guide/how-to-clean/page.tsx"),
+    "utf8",
+  );
 
   it("contains no H1 and preserves the required H2 and H3 hierarchy", () => {
     expect(mdx).not.toMatch(/^#\s+/m);
@@ -217,6 +249,7 @@ describe("cleaning MDX content contract", () => {
       "Using the Correct Workbench Area",
       "Why Dirt Is Not Disappearing",
       "Cleaning Troubleshooting Checklist",
+      "Frequently Asked Questions",
       "Sources and Evidence Notes",
     ]);
     expect(Array.from(mdx.matchAll(/^###\s+(.+)$/gm), (match) => match[1])).toEqual([
@@ -234,12 +267,31 @@ describe("cleaning MDX content contract", () => {
     );
     expect(mdx).toContain("player clue");
     expect(mdx).toContain("not a fixed official control instruction");
+    expect(mdx.indexOf('<div className="quick-answer">')).toBeLessThan(
+      mdx.indexOf("## How Cleaning Works in ReStory"),
+    );
 
     const checklist = mdx
       .split("## Cleaning Troubleshooting Checklist")[1]
       ?.split("## Sources and Evidence Notes")[0];
     expect(checklist).toBeDefined();
     expect(checklist?.match(/^\d+\.\s+/gm)).toHaveLength(8);
+  });
+
+  it("renders FAQ before sources from one shared data source", () => {
+    expect(mdx.indexOf("## Frequently Asked Questions")).toBeLessThan(
+      mdx.indexOf("## Sources and Evidence Notes"),
+    );
+    expect(mdx).toContain('import { FaqList } from "@/components/faq-list";');
+    expect(mdx).toContain(
+      'import { cleaningFaqItems } from "@/data/cleaning";',
+    );
+    expect(mdx).toContain("<FaqList items={cleaningFaqItems} />");
+    expect(pageSource).toContain(
+      'import { cleaningFaqItems } from "@/data/cleaning";',
+    );
+    expect(pageSource).not.toContain("<FaqList");
+    expect(pageSource).not.toContain("const cleaningFaqItems =");
   });
 
   it("uses all three required sources with explicit evidence limits", () => {
