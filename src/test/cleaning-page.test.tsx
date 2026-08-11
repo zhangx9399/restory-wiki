@@ -341,6 +341,28 @@ describe("cleaning MDX content contract", () => {
     expect(cleaningData).toMatch(/visible interface in the current release/i);
   });
 
+  it("qualifies every paragraph that gives an upper-right or cup location", () => {
+    const paragraphs = mdx.split(/\n\s*\n/).filter(Boolean);
+    const locationParagraphs = paragraphs
+      .map((paragraph, index) => ({ paragraph, index }))
+      .filter(({ paragraph }) => /upper-right|\bcup\b/i.test(paragraph));
+
+    expect(locationParagraphs.length).toBeGreaterThanOrEqual(7);
+    for (const { paragraph, index } of locationParagraphs) {
+      const localContext = paragraphs
+        .slice(Math.max(0, index - 1), index + 2)
+        .join("\n\n");
+      expect(localContext, paragraph).toMatch(
+        /player(?:'s)? (?:discussion|reply|report|upper-right)|player-supplied|late-2025 reply/i,
+      );
+      expect(localContext, paragraph).toMatch(/late-2025/i);
+      expect(localContext, paragraph).toMatch(/demo|pre-release/i);
+      expect(localContext, paragraph).toMatch(
+        /visible interface|current interface|interface in the current release/i,
+      );
+    }
+  });
+
   it("uses all three required sources with explicit evidence limits", () => {
     expect(mdx).toContain(
       "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/",
