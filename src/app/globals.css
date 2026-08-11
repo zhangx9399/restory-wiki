@@ -259,6 +259,7 @@ h3 {
   font-size: 1.28rem;
 }
 
+p.hero-copy,
 .hero-copy > p:not(.eyebrow) {
   max-width: 61ch;
   margin: 0;
@@ -610,6 +611,7 @@ a.guide-card:hover {
   background: var(--surface);
 }
 
+.fact dt,
 .fact strong {
   display: block;
   margin-bottom: 0.3rem;
@@ -617,6 +619,7 @@ a.guide-card:hover {
   font-size: 1.15rem;
 }
 
+.fact dd,
 .fact p {
   margin: 0;
   color: var(--muted);

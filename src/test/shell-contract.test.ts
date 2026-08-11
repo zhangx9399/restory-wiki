@@ -64,6 +64,21 @@ describe("shared shell contracts", () => {
     expect(css).not.toMatch(/body\s*\{[^}]*overflow-x:\s*hidden/);
   });
 
+  it("styles hero copy when the class is placed directly on a paragraph", () => {
+    expect(css).toMatch(
+      /p\.hero-copy,[^{}]*\.hero-copy > p:not\(\.eyebrow\)[^{}]*\{(?=[^}]*max-width:\s*61ch)(?=[^}]*margin:\s*0)(?=[^}]*color:\s*var\(--muted\))(?=[^}]*font-size:\s*clamp\(1\.05rem, 2vw, 1\.22rem\))[^}]*\}/,
+    );
+  });
+
+  it("styles semantic terms and descriptions inside quick facts", () => {
+    expect(css).toMatch(
+      /\.fact dt,[^{}]*\.fact strong\s*\{(?=[^}]*display:\s*block)(?=[^}]*margin-bottom:\s*0\.3rem)(?=[^}]*color:\s*var\(--teal-dark\))(?=[^}]*font-size:\s*1\.15rem)[^}]*\}/,
+    );
+    expect(css).toMatch(
+      /\.fact dd,[^{}]*\.fact p\s*\{(?=[^}]*margin:\s*0)(?=[^}]*color:\s*var\(--muted\))[^}]*\}/,
+    );
+  });
+
   it("keeps mobile navigation visible until JavaScript enhancement runs", () => {
     expect(css).toMatch(
       /@media \(max-width: 820px\)[\s\S]*?\.menu-button\s*\{[^}]*display:\s*none/,
