@@ -1,31 +1,30 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { GuideCard } from "@/components/guide-card";
 import { guideEntries, type GuideCategory } from "@/data/guides";
 
 const tabs = [
-  { label: "Beginner", category: "Getting Started", id: "guide-tab-beginner" },
-  { label: "Repair", category: "Repair & Cleaning", id: "guide-tab-repair" },
-  { label: "Shop", category: "Shop & Customization", id: "guide-tab-shop" },
+  { label: "Beginner", category: "Getting Started" },
+  { label: "Repair", category: "Repair & Cleaning" },
+  { label: "Shop", category: "Shop & Customization" },
   {
     label: "Troubleshooting",
     category: "Technical Help",
-    id: "guide-tab-troubleshooting",
   },
 ] as const satisfies readonly {
   label: string;
   category: GuideCategory;
-  id: string;
 }[];
 
-const panelId = "guide-category-panel";
-
 export function CategoryTabs() {
+  const instanceId = useId();
   const [activeIndex, setActiveIndex] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeTab = tabs[activeIndex];
+  const panelId = `${instanceId}-guide-category-panel`;
+  const activeTabId = `${instanceId}-guide-category-tab-${activeIndex}`;
   const activeGuides = guideEntries.filter(
     (guide) => guide.category === activeTab.category,
   );
@@ -64,14 +63,15 @@ export function CategoryTabs() {
       <div className="tab-list" role="tablist" aria-label="Guide categories">
         {tabs.map((tab, index) => {
           const isActive = index === activeIndex;
+          const tabId = `${instanceId}-guide-category-tab-${index}`;
 
           return (
             <button
-              key={tab.id}
+              key={tab.label}
               ref={(element) => {
                 tabRefs.current[index] = element;
               }}
-              id={tab.id}
+              id={tabId}
               type="button"
               role="tab"
               aria-controls={panelId}
@@ -90,7 +90,8 @@ export function CategoryTabs() {
         id={panelId}
         className="guide-grid"
         role="tabpanel"
-        aria-labelledby={activeTab.id}
+        aria-labelledby={activeTabId}
+        tabIndex={0}
       >
         {activeGuides.map((guide) => (
           <GuideCard key={guide.title} guide={guide} />

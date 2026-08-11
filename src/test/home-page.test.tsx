@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it } from "vitest";
 
 import HomePage, { metadata } from "@/app/page";
+import { guideEntries } from "@/data/guides";
 import { pageSeo, routes, siteConfig } from "@/data/site";
 
 afterEach(cleanup);
@@ -71,6 +72,53 @@ describe("HomePage", () => {
     expect(screen.getByText("Quick answers", { selector: ".eyebrow" })).toBeInTheDocument();
   });
 
+  it("shows the four cross-category starting cards before category tabs", () => {
+    const { container } = render(<HomePage />);
+
+    const startSection = screen
+      .getByRole("heading", { level: 2, name: "Your ReStory repair route" })
+      .closest("section");
+    const featuredGrid = startSection?.querySelector<HTMLElement>(".guide-grid");
+    expect(featuredGrid).toBeInTheDocument();
+    expect(
+      within(featuredGrid as HTMLElement)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual([
+      "Beginner Guide",
+      "Demo vs Full Game",
+      "How to Clean Items",
+      "Customize Your Shop",
+    ]);
+    expect(
+      within(featuredGrid as HTMLElement).getByRole("link", {
+        name: /How to Clean Items/i,
+      }),
+    ).toHaveAttribute("href", "/guide/how-to-clean");
+    for (const title of ["Beginner Guide", "Demo vs Full Game", "Customize Your Shop"]) {
+      const card = within(featuredGrid as HTMLElement)
+        .getByRole("heading", { level: 3, name: title })
+        .closest(".guide-card");
+      expect(card?.tagName).toBe("DIV");
+      expect(within(card as HTMLElement).queryByRole("link")).not.toBeInTheDocument();
+    }
+
+    const browseHeading = within(startSection as HTMLElement).getByRole("heading", {
+      level: 3,
+      name: "Browse by category",
+    });
+    const tablist = within(startSection as HTMLElement).getByRole("tablist", {
+      name: "Guide categories",
+    });
+    expect(
+      featuredGrid?.compareDocumentPosition(browseHeading) ?? 0,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(browseHeading.compareDocumentPosition(tablist)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(container.querySelectorAll("h1")).toHaveLength(1);
+  });
+
   it("presents quick facts as a description list", () => {
     const { container } = render(<HomePage />);
 
@@ -136,14 +184,55 @@ describe("HomePage", () => {
   });
 
   it("does not link cards for coming-next guides", () => {
-    const { container } = render(<HomePage />);
+    render(<HomePage />);
 
-    for (const label of ["Beginner", "Repair", "Shop", "Troubleshooting"]) {
+    const expectedByTab = {
+      Beginner: ["Beginner Guide", "Demo vs Full Game"],
+      Repair: ["How to Clean Items", "Painting Guide"],
+      Shop: ["How to Sell Devices", "Customize Your Shop"],
+      Troubleshooting: ["System Requirements", "Missing Joystick"],
+    } as const;
+
+    for (const [label, expectedTitles] of Object.entries(expectedByTab)) {
       fireEvent.click(screen.getByRole("tab", { name: label }));
-      for (const card of container.querySelectorAll(".guide-card-muted")) {
-        expect(card.tagName).toBe("DIV");
-        expect(card.querySelector("a")).not.toBeInTheDocument();
+      const panel = screen.getByRole("tabpanel");
+      const renderedTitles = within(panel)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent);
+      expect(renderedTitles).toEqual(expectedTitles);
+      expect(renderedTitles).toHaveLength(2);
+
+      for (const title of expectedTitles) {
+        const guide = guideEntries.find((entry) => entry.title === title);
+        expect(guide).toBeDefined();
+        const card = within(panel)
+          .getByRole("heading", { level: 3, name: title })
+          .closest(".guide-card");
+
+        if (guide?.status === "coming-next") {
+          expect(card?.tagName).toBe("DIV");
+          expect(within(card as HTMLElement).queryByRole("link")).not.toBeInTheDocument();
+        } else {
+          expect(card?.tagName).toBe("A");
+        }
       }
     }
+  });
+
+  it("ends with a clear route into the cleaning guide or all guides", () => {
+    const { container } = render(<HomePage />);
+
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: "Ready for your first repair?",
+    });
+    const section = heading.closest("section");
+    expect(section).toBe(container.querySelector("main")?.lastElementChild);
+    expect(
+      within(section as HTMLElement).getByRole("link", { name: "Read the cleaning guide" }),
+    ).toHaveAttribute("href", "/guide/how-to-clean");
+    expect(
+      within(section as HTMLElement).getByRole("link", { name: "Browse all guides" }),
+    ).toHaveAttribute("href", "/guide");
   });
 });

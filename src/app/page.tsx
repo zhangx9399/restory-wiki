@@ -3,8 +3,10 @@ import Link from "next/link";
 
 import { CategoryTabs } from "@/components/category-tabs";
 import { FaqList, type FaqItem } from "@/components/faq-list";
+import { GuideCard } from "@/components/guide-card";
 import { JsonLd } from "@/components/json-ld";
 import { RepairBenchArt } from "@/components/repair-bench-art";
+import { guideEntries } from "@/data/guides";
 import { pageSeo, routes, siteConfig } from "@/data/site";
 import { faqSchema, websiteSchema } from "@/lib/structured-data";
 
@@ -46,6 +48,17 @@ const quickFacts = [
   ["Main story", "15+ hours"],
   ["Platform", "Steam"],
 ] as const;
+
+const featuredGuideTitles = [
+  "Beginner Guide",
+  "Demo vs Full Game",
+  "How to Clean Items",
+  "Customize Your Shop",
+] as const;
+
+const featuredGuides = guideEntries.filter((guide) =>
+  featuredGuideTitles.some((title) => title === guide.title),
+);
 
 export default function HomePage() {
   return (
@@ -95,6 +108,12 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+          <div className="guide-grid">
+            {featuredGuides.map((guide) => (
+              <GuideCard key={guide.title} guide={guide} />
+            ))}
+          </div>
+          <h3>Browse by category</h3>
           <CategoryTabs />
         </div>
       </section>
@@ -136,6 +155,25 @@ export default function HomePage() {
             </div>
           </div>
           <FaqList items={homeFaqItems} />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="shell">
+          <div className="section-heading">
+            <div>
+              <h2>Ready for your first repair?</h2>
+              <p>Start with a practical walkthrough or explore the complete guide hub.</p>
+            </div>
+          </div>
+          <div className="actions">
+            <Link className="action action-primary" href={routes.cleaning}>
+              Read the cleaning guide
+            </Link>
+            <Link className="action" href={routes.guide}>
+              Browse all guides
+            </Link>
+          </div>
         </div>
       </section>
     </main>
