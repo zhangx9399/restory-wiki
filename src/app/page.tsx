@@ -24,17 +24,17 @@ const homeFaqItems = [
   {
     question: "What is ReStory?",
     answer:
-      "ReStory is a narrative-driven shop-management simulation about restoring nostalgic electronics in mid-2000s Tokyo.",
+      "ReStory: Chill Electronics Repairs is a narrative-driven shop-management simulation about restoring nostalgic electronics in mid-2000s Tokyo.",
   },
   {
     question: "Where can I play ReStory?",
     answer:
-      "ReStory is available through its official store page on Steam. Use the Steam link on this site to check the latest platform, price, and availability details.",
+      "The official ReStory store page is on Steam. Use the Steam link on this site for current platform, price, and availability information.",
   },
   {
     question: "Is this an official ReStory website?",
     answer:
-      "No. This is an independent fan-made website and is not affiliated with Mandragora, tinyBuild, or Valve.",
+      "No. ReStory Wiki is an independent fan-made guide and is not affiliated with Mandragora, tinyBuild, or Valve.",
   },
 ] as const satisfies readonly FaqItem[];
 
@@ -75,7 +75,7 @@ export default function HomePage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Play on Steam
+                Play on Steam ↗
               </a>
             </div>
           </div>
@@ -87,10 +87,11 @@ export default function HomePage() {
         <div className="shell">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">Start here</p>
               <h2>Your ReStory repair route</h2>
               <p>
-                Start with the basics, jump into a repair, plan your shop, or
-                find help for a technical problem.
+                Begin with the information you need now, then move into repairs,
+                shop systems, and technical help.
               </p>
             </div>
           </div>
@@ -102,6 +103,7 @@ export default function HomePage() {
         <div className="shell">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">About the game</p>
               <h2>Restore devices and run a repair shop</h2>
               <p>
                 ReStory combines hands-on electronics restoration with shop
@@ -128,6 +130,7 @@ export default function HomePage() {
         <div className="shell">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">Quick answers</p>
               <h2>ReStory FAQ</h2>
               <p>Quick answers about the game, where to find it, and this guide.</p>
             </div>

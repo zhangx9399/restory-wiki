@@ -49,10 +49,26 @@ describe("HomePage", () => {
       "/guide/how-to-clean",
     );
 
-    const steamLink = screen.getByRole("link", { name: "Play on Steam" });
+    const steamLink = screen.getByRole("link", { name: "Play on Steam ↗" });
     expect(steamLink).toHaveAttribute("href", siteConfig.steamUrl);
     expect(steamLink).toHaveAttribute("target", "_blank");
     expect(steamLink).toHaveAttribute("rel", "noreferrer");
+  });
+
+  it("uses the approved section labels and introductory copy", () => {
+    render(<HomePage />);
+
+    expect(screen.getByText("Start here", { selector: ".eyebrow" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Your ReStory repair route" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Begin with the information you need now, then move into repairs, shop systems, and technical help.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("About the game", { selector: ".eyebrow" })).toBeInTheDocument();
+    expect(screen.getByText("Quick answers", { selector: ".eyebrow" })).toBeInTheDocument();
   });
 
   it("presents quick facts as a description list", () => {
@@ -87,7 +103,32 @@ describe("HomePage", () => {
 
     const faq = scripts.find((schema) => schema["@type"] === "FAQPage");
     expect(faq).toBeDefined();
-    expect(faq.mainEntity).toHaveLength(3);
+    expect(faq.mainEntity).toEqual([
+      {
+        "@type": "Question",
+        name: "What is ReStory?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "ReStory: Chill Electronics Repairs is a narrative-driven shop-management simulation about restoring nostalgic electronics in mid-2000s Tokyo.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Where can I play ReStory?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "The official ReStory store page is on Steam. Use the Steam link on this site for current platform, price, and availability information.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is this an official ReStory website?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "No. ReStory Wiki is an independent fan-made guide and is not affiliated with Mandragora, tinyBuild, or Valve.",
+        },
+      },
+    ]);
     for (const item of faq.mainEntity) {
       expect(screen.getByText(item.name)).toBeInTheDocument();
       expect(screen.getByText(item.acceptedAnswer.text)).toBeInTheDocument();
