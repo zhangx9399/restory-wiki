@@ -3,7 +3,7 @@ import { cleaningFaqItems } from "@/data/cleaning";
 
 <div className="quick-answer">
 
-**Quick answer:** Remove the dirty part, move it into the cleaning area by the cup on the upper-right of the workbench, enter the cleaning interaction, and use the scrubbing action. If you hear cleaning sound but see no change, follow the checklist below. The cup location comes from a player clue, not a fixed official control instruction, so use it as a practical lead and verify what the current interface shows.
+**Quick answer:** Remove the dirty part, move it into the cleaning area by the cup on the upper-right of the workbench, enter the cleaning interaction, and use the scrubbing action. If sound plays but dirt does not change, follow the checklist. The cup is a clue from a late-2025 player discussion that may reflect a demo or pre-release build, not a fixed official control instruction; follow the visible interface in the current release.
 
 </div>
 
@@ -11,15 +11,15 @@ import { cleaningFaqItems } from "@/data/cleaning";
 
 The official Steam description establishes the broad repair loop: take a gadget apart, clean it, replace faulty parts, and assemble it again. It also describes an in-depth cleaning and restoration system. This confirms that cleaning components belongs in a normal repair, but the store page does not document a permanent button label, keyboard key, or every workbench gesture.
 
-In practice, cleaning is applied to a part that has been removed from the device and placed into the appropriate work area. It is not an automatic whole-device action that works from any point on the bench. Treat selection, placement, and interaction state as separate checks: a part can look close to a station without actually being accepted by that station.
+In practice, cleaning is applied to a removed part in the appropriate work area, not automatically to a whole device anywhere on the bench. A part can look close to a station without being accepted.
 
-The Steam store supports the overall sequence. A Steam Community reply supplies the cup-location clue, while the same thread includes reports of sound playing without visible progress. Those reports suggest useful checks; they do not prove one cause.
+The Steam store supports only that broad repair loop. The upper-right cup detail comes from a late-2025 player discussion that may reflect a demo or pre-release build. Follow the visible interface in the current release; the report suggests checks but does not prove one cause.
 
 ## Cleaning the First Pokia Device
 
 Expose and select the visibly dirty component rather than moving the complete Pokia device or a nearby clean piece. Disassembly gives the cleaning interaction a specific component. If several loose pieces are on the bench, confirm which one still shows dirt.
 
-Move that component toward the cup or cleaning spot on the upper-right of the workbench. This location comes from a player reply in the “Stuck at First Item” discussion, not an official control reference. Look for the interface to accept the component or open a cleaning interaction; resting it nearby may not establish that state.
+A late-2025 reply in “Stuck at First Item” reports an upper-right cup or cleaning spot, but it may describe a demo or pre-release build rather than the current release. Follow the visible interface, then look for it to accept the component or open a cleaning interaction; resting the part nearby may not establish that state.
 
 Once the interaction is active, use its scrubbing action and watch the dirty surface for visual progress. Sound alone is weak evidence: players in the cited thread heard cleaning audio while dirt remained. If the surface does not change, check placement, selection, input, and session state.
 
@@ -29,7 +29,7 @@ The workbench stages have different purposes. Disassembly exposes components. Th
 
 Before scrubbing, verify three conditions: the dirty component is selected, the cleaning area has accepted it, and the cleaning interaction has opened. If one is missing, back out and repeat the placement instead of assuming the dirt texture is broken.
 
-Prompts can vary with game version, control method, and interface state. Follow the prompt in your copy. This guide does not invent a keyboard key, mouse button, controller button, or permanent label. The stable sequence is select, engage the cleaning area, then scrub.
+Prompts can vary with game version, control method, and interface state. This guide does not invent a keyboard key, mouse button, controller button, or permanent label. For cautious troubleshooting, try selection, station engagement, then scrubbing. The upper-right cup clue is from a late-2025 player discussion that may reflect a demo or pre-release build; prioritize the visible interface in the current release.
 
 ## Why Dirt Is Not Disappearing
 
@@ -59,7 +59,7 @@ After restarting, repeat the smallest clean sequence. If it still fails, record 
 
 1. Confirm that the current repair objective and visible surface indicate that this component needs cleaning.
 2. Disassemble enough of the device to expose and select the actual dirty component, not the complete device or a clean neighbor.
-3. Move the dirty component into the cup or cleaning area on the upper-right of the workbench, using that player-supplied location as a clue.
+3. Use the late-2025 player's upper-right cup clue only if the visible interface in the current release supports it; the report may reflect a demo or pre-release build.
 4. Wait for the cleaning interaction or its visible prompt to open before starting the scrubbing action.
 5. Watch for visual dirt or progress changes instead of using cleaning sound alone as proof of progress.
 6. Exit the cleaning interaction, reposition the same component, and enter the interaction again.
@@ -75,7 +75,7 @@ Run the list in order so each attempt changes one likely condition. This helps i
 ## Sources and Evidence Notes
 
 - **Official source — [ReStory Steam store](https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/):** supports the core repair loop of taking gadgets apart, cleaning them, replacing faulty parts, and assembling them again. It does not document the cup location or a fixed cleaning control.
-- **Player report — [“Stuck at First Item”](https://steamcommunity.com/app/3812600/discussions/1/684114096137749161/):** supports the player-supplied clue that the cup at the top-right of the desk is used to enter cleaning, plus reports of cleaning sound with no visible dirt progress. It is not an official control specification and does not show one cause for every report.
+- **Player report — [“Stuck at First Item”](https://steamcommunity.com/app/3812600/discussions/1/684114096137749161/):** a late-2025 discussion reports the upper-right cup clue and cleaning sound without visible dirt progress. It may reflect a demo or pre-release build, is not an official control specification, and does not show one cause for every report. Follow the visible interface in the current release.
 - **Player reports — [Bugs & Technical Issues](https://steamcommunity.com/app/3812600/discussions/1/):** supports only that players report technical and interaction problems. The forum index does not establish a universal diagnosis and does not establish a universal fix.
 
 Last evidence review: Aug 10, 2026. Recheck the official description, current interface, and relevant player reports after a major game update because workbench prompts or behavior may change.

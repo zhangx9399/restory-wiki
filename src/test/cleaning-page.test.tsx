@@ -29,9 +29,10 @@ vi.mock("@/content/how-to-clean.mdx", () => ({
         <details>
           <summary>Is the cleaning cup on the upper-right of the workbench?</summary>
           <p>
-            A player-verified reply identifies the cup on the upper-right as the
-            cleaning area. Treat that as a gameplay clue, not a permanent official
-            control description.
+            A late-2025 player reply reports that the cup on the upper-right is the
+            cleaning area. That discussion may reflect a demo or pre-release build,
+            so treat it as a gameplay clue rather than a permanent official control
+            description and follow the visible interface in the current release.
           </p>
         </details>
         <details>
@@ -59,7 +60,7 @@ const expectedFaq = [
   {
     question: "Is the cleaning cup on the upper-right of the workbench?",
     answer:
-      "A player-verified reply identifies the cup on the upper-right as the cleaning area. Treat that as a gameplay clue, not a permanent official control description.",
+      "A late-2025 player reply reports that the cup on the upper-right is the cleaning area. That discussion may reflect a demo or pre-release build, so treat it as a gameplay clue rather than a permanent official control description and follow the visible interface in the current release.",
   },
   {
     question: "Should I reinstall the game immediately?",
@@ -144,6 +145,7 @@ describe("CleaningPage", () => {
       "#why-dirt-is-not-disappearing",
       "#cleaning-troubleshooting-checklist",
       "#frequently-asked-questions",
+      "#sources-and-evidence-notes",
     ];
     expect(
       within(aside)
@@ -240,6 +242,10 @@ describe("cleaning MDX content contract", () => {
     join(process.cwd(), "src/app/guide/how-to-clean/page.tsx"),
     "utf8",
   );
+  const cleaningData = readFileSync(
+    join(process.cwd(), "src/data/cleaning.ts"),
+    "utf8",
+  );
 
   it("contains no H1 and preserves the required H2 and H3 hierarchy", () => {
     expect(mdx).not.toMatch(/^#\s+/m);
@@ -265,7 +271,7 @@ describe("cleaning MDX content contract", () => {
     expect(mdx).toContain(
       "Remove the dirty part, move it into the cleaning area by the cup on the upper-right of the workbench, enter the cleaning interaction, and use the scrubbing action.",
     );
-    expect(mdx).toContain("player clue");
+    expect(mdx).toContain("clue from a late-2025 player discussion");
     expect(mdx).toContain("not a fixed official control instruction");
     expect(mdx.indexOf('<div className="quick-answer">')).toBeLessThan(
       mdx.indexOf("## How Cleaning Works in ReStory"),
@@ -292,6 +298,47 @@ describe("cleaning MDX content contract", () => {
     );
     expect(pageSource).not.toContain("<FaqList");
     expect(pageSource).not.toContain("const cleaningFaqItems =");
+  });
+
+  it("qualifies the late-2025 cup clue everywhere it informs instructions", () => {
+    const quickAnswer = mdx.split("## How Cleaning Works in ReStory")[0];
+    const howCleaning = mdx
+      .split("## How Cleaning Works in ReStory")[1]
+      ?.split("## Cleaning the First Pokia Device")[0];
+    const firstPokia = mdx
+      .split("## Cleaning the First Pokia Device")[1]
+      ?.split("## Using the Correct Workbench Area")[0];
+    const workbench = mdx
+      .split("## Using the Correct Workbench Area")[1]
+      ?.split("## Why Dirt Is Not Disappearing")[0];
+    const checklist = mdx
+      .split("## Cleaning Troubleshooting Checklist")[1]
+      ?.split("## Frequently Asked Questions")[0];
+    const sources = mdx.split("## Sources and Evidence Notes")[1];
+
+    for (const section of [
+      quickAnswer,
+      howCleaning,
+      firstPokia,
+      workbench,
+      checklist,
+      sources,
+    ]) {
+      expect(section).toMatch(/late-2025/i);
+      expect(section).toMatch(/demo|pre-release/i);
+      expect(section).toMatch(/visible interface|current release/i);
+    }
+    expect(howCleaning).toContain("official Steam description");
+    expect(howCleaning).toContain("broad repair loop");
+  });
+
+  it("avoids overstating community evidence in content and shared FAQ data", () => {
+    expect(`${mdx}\n${cleaningData}`).not.toMatch(
+      /player-verified|stable sequence/i,
+    );
+    expect(cleaningData).toContain("A late-2025 player reply reports");
+    expect(cleaningData).toMatch(/demo or pre-release build/i);
+    expect(cleaningData).toMatch(/visible interface in the current release/i);
   });
 
   it("uses all three required sources with explicit evidence limits", () => {

@@ -7,7 +7,7 @@ export const cleaningFaqItems = [
   {
     question: "Is the cleaning cup on the upper-right of the workbench?",
     answer:
-      "A player-verified reply identifies the cup on the upper-right as the cleaning area. Treat that as a gameplay clue, not a permanent official control description.",
+      "A late-2025 player reply reports that the cup on the upper-right is the cleaning area. That discussion may reflect a demo or pre-release build, so treat it as a gameplay clue rather than a permanent official control description and follow the visible interface in the current release.",
   },
   {
     question: "Should I reinstall the game immediately?",

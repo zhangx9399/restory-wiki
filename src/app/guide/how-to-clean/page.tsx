@@ -48,6 +48,7 @@ const tableOfContents = [
   ["Why Dirt Is Not Disappearing", "#why-dirt-is-not-disappearing"],
   ["Cleaning Troubleshooting Checklist", "#cleaning-troubleshooting-checklist"],
   ["Frequently Asked Questions", "#frequently-asked-questions"],
+  ["Sources and Evidence Notes", "#sources-and-evidence-notes"],
 ] as const;
 
 export default function CleaningPage() {
