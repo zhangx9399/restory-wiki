@@ -54,6 +54,11 @@ function isAbsoluteHttpUrl(value) {
   }
 }
 
+function isSameOriginHttpUrl(value, pageUrl) {
+  if (!isAbsoluteHttpUrl(value)) return false;
+  return new URL(value).origin === new URL(pageUrl).origin;
+}
+
 function schemaTypes(value) {
   if (Array.isArray(value)) {
     return value.flatMap(schemaTypes);
@@ -152,7 +157,7 @@ function parseJsonLd($, errors) {
   return schemas;
 }
 
-function auditCleaningPage($, schemas, errors, expected) {
+function auditCleaningPage($, schemas, errors, expected, currentPageUrl) {
   const tableOfContents = $('[aria-label="Table of contents"]');
   const tocLinks = tableOfContents.find("a[href]");
   if (tableOfContents.length !== 1 || tocLinks.length === 0) {
@@ -163,14 +168,27 @@ function auditCleaningPage($, schemas, errors, expected) {
 
   tocLinks.each((_index, anchor) => {
     const href = $(anchor).attr("href") ?? "";
-    const hashIndex = href.indexOf("#");
-    const fragment = hashIndex >= 0 ? href.slice(hashIndex + 1) : "";
-    const count = fragment ? targetCount($, fragment) : 0;
-    if (count !== 1) {
+    let target;
+    try {
+      target = new URL(href, currentPageUrl);
+    } catch {
+      target = undefined;
+    }
+    const current = new URL(currentPageUrl);
+    const sameDocument =
+      target &&
+      target.origin === current.origin &&
+      target.pathname === current.pathname &&
+      target.search === current.search &&
+      target.hash.length > 1;
+    const count = sameDocument ? targetCount($, target.hash.slice(1)) : 0;
+    if (!sameDocument || count !== 1) {
       errors.push(
-        error("toc-target", `TOC href ${JSON.stringify(href)} must have one target.`, {
-          count,
-        }),
+        error(
+          "toc-target",
+          `TOC href ${JSON.stringify(href)} must be a fragment link to this page with one target.`,
+          { href, count },
+        ),
       );
     }
   });
@@ -183,12 +201,16 @@ function auditCleaningPage($, schemas, errors, expected) {
       !isNonEmptyString(articleSchema.description) ||
       normalizeText(articleSchema.description) !==
         normalizeText(expected.description) ||
-      !isAbsoluteHttpUrl(articleSchema.mainEntityOfPage))
+      articleSchema.mainEntityOfPage !== currentPageUrl)
   ) {
     errors.push(
       error(
         "article-entity",
-        "Article must match the page headline and description and have an absolute mainEntityOfPage URL.",
+        "Article must match the page headline, description, and canonical page URL.",
+        {
+          expected: currentPageUrl,
+          actual: articleSchema.mainEntityOfPage,
+        },
       ),
     );
   }
@@ -199,17 +221,17 @@ function auditCleaningPage($, schemas, errors, expected) {
     (!Array.isArray(breadcrumbSchema.itemListElement) ||
       breadcrumbSchema.itemListElement.length === 0 ||
       breadcrumbSchema.itemListElement.some(
-        (item) =>
+        (item, index) =>
           !Number.isInteger(item?.position) ||
-          item.position < 1 ||
+          item.position !== index + 1 ||
           !isNonEmptyString(item?.name) ||
-          !isAbsoluteHttpUrl(item?.item),
+          !isSameOriginHttpUrl(item?.item, currentPageUrl),
       ))
   ) {
     errors.push(
       error(
         "breadcrumb-entity",
-        "BreadcrumbList must have entries with positive positions, names, and absolute item URLs.",
+        "BreadcrumbList must have entries positioned 1..N with names and same-origin absolute item URLs.",
       ),
     );
   }
@@ -250,6 +272,8 @@ function auditCleaningPage($, schemas, errors, expected) {
   if (
     faqSchema.mainEntity.some(
       (item) =>
+        item?.["@type"] !== "Question" ||
+        item?.acceptedAnswer?.["@type"] !== "Answer" ||
         !isNonEmptyString(item?.name) ||
         !isNonEmptyString(item?.acceptedAnswer?.text),
     )
@@ -257,7 +281,7 @@ function auditCleaningPage($, schemas, errors, expected) {
     errors.push(
       error(
         "faq-entity",
-        "FAQPage questions and accepted answers must have non-empty text.",
+        "FAQPage entries must be Question/Answer entities with non-empty text.",
       ),
     );
   }
@@ -312,7 +336,7 @@ export function auditHtml({
     }
   }
   if (checkCleaningPage) {
-    auditCleaningPage($, parsedSchemas, errors, expected);
+    auditCleaningPage($, parsedSchemas, errors, expected, absolute);
   }
 
   return { valid: errors.length === 0, errors };
@@ -352,6 +376,7 @@ export function collectInternalLinks({ html, pageUrl, siteUrl }) {
 
     const fragment = target.hash.slice(1);
     target.hash = "";
+    target.searchParams.sort();
     links.push({
       href,
       targetUrl: target.href,
@@ -377,14 +402,18 @@ export function auditInternalLinks({ pages, siteUrl }) {
     })) {
       const targetPage = pageForUrl(pages, link.targetUrl);
       if (!targetPage || targetPage.status !== 200) {
+        const fetchFailure = targetPage?.fetchError;
         errors.push(
           error(
             "internal-route-status",
-            `Internal href ${JSON.stringify(link.href)} did not return HTTP 200.`,
+            `Internal href ${JSON.stringify(link.href)} did not return HTTP 200.${
+              fetchFailure ? ` Fetch failed: ${fetchFailure}` : ""
+            }`,
             {
               sourceUrl,
               targetUrl: link.targetUrl,
               status: targetPage?.status ?? 0,
+              fetchError: fetchFailure,
             },
           ),
         );
@@ -418,14 +447,36 @@ export function auditInternalLinks({ pages, siteUrl }) {
   return errors;
 }
 
-async function fetchPage(fetchImpl, url) {
+async function fetchPage(fetchImpl, url, fetchTimeoutMs) {
+  const controller = new AbortController();
+  let timeout;
   try {
-    const response = await fetchImpl(url, { redirect: "manual" });
-    return {
-      url: response.url || url,
-      status: response.status,
-      html: await response.text(),
-    };
+    return await Promise.race([
+      (async () => {
+        const response = await fetchImpl(url, {
+          redirect: "manual",
+          signal: controller.signal,
+        });
+        const contentType = response.headers?.get?.("content-type") ?? "";
+        const isHtml =
+          response.status >= 200 &&
+          response.status < 300 &&
+          /^text\/html(?:\s*;|$)/i.test(contentType);
+        return {
+          url: response.url || url,
+          status: response.status,
+          contentType,
+          isHtml,
+          html: isHtml ? await response.text() : "",
+        };
+      })(),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(new Error(`Fetch ${url} timed out after ${fetchTimeoutMs}ms.`));
+          controller.abort();
+        }, fetchTimeoutMs);
+      }),
+    ]);
   } catch (cause) {
     return {
       url,
@@ -433,42 +484,110 @@ async function fetchPage(fetchImpl, url) {
       html: "",
       fetchError: cause instanceof Error ? cause.message : String(cause),
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
-async function fetchLinkedPages({ siteUrl, fetchImpl }) {
+async function fetchLinkedPages({
+  siteUrl,
+  fetchImpl,
+  fetchTimeoutMs,
+  maxPages,
+  maxDepth,
+  maxUrls,
+}) {
   const pages = new Map();
-  const queued = PAGE_EXPECTATIONS.map(({ route }) => expectedUrl(siteUrl, route));
+  const crawlErrors = [];
+  const initialUrls = PAGE_EXPECTATIONS.map(({ route }) => expectedUrl(siteUrl, route));
+  const queued = initialUrls.map((url) => ({ url, depth: 0 }));
+  const discovered = new Set(initialUrls);
+  let fetchedPages = 0;
+  let pageBudgetReported = false;
+  let urlBudgetReported = false;
 
   while (queued.length > 0) {
-    const requestedUrl = queued.shift();
+    if (fetchedPages >= maxPages) {
+      if (!pageBudgetReported) {
+        crawlErrors.push(
+          error(
+            "crawl-page-budget",
+            `Crawler stopped after reaching maxPages=${maxPages}; increase maxPages or remove an unbounded link chain.`,
+            { maxPages, queuedUrls: queued.length, nextUrl: queued[0].url },
+          ),
+        );
+        pageBudgetReported = true;
+      }
+      break;
+    }
+
+    const { url: requestedUrl, depth } = queued.shift();
     if (pages.has(requestedUrl)) continue;
 
-    const page = await fetchPage(fetchImpl, requestedUrl);
+    const page = await fetchPage(fetchImpl, requestedUrl, fetchTimeoutMs);
+    fetchedPages += 1;
     pages.set(requestedUrl, page);
     pages.set(page.url, page);
+
+    if (!page.isHtml) continue;
 
     for (const link of collectInternalLinks({
       html: page.html,
       pageUrl: page.url,
       siteUrl,
     })) {
-      if (!pages.has(link.targetUrl) && !queued.includes(link.targetUrl)) {
-        queued.push(link.targetUrl);
+      if (pages.has(link.targetUrl) || discovered.has(link.targetUrl)) continue;
+
+      if (depth + 1 > maxDepth) {
+        crawlErrors.push(
+          error(
+            "crawl-depth-budget",
+            `Crawler did not fetch ${link.targetUrl} because it exceeds maxDepth=${maxDepth}.`,
+            { sourceUrl: page.url, targetUrl: link.targetUrl, maxDepth },
+          ),
+        );
+        continue;
       }
+      if (discovered.size >= maxUrls) {
+        if (!urlBudgetReported) {
+          crawlErrors.push(
+            error(
+              "crawl-url-budget",
+              `Crawler stopped discovering URLs after reaching maxUrls=${maxUrls}; increase maxUrls or constrain generated links.`,
+              { sourceUrl: page.url, targetUrl: link.targetUrl, maxUrls },
+            ),
+          );
+          urlBudgetReported = true;
+        }
+        continue;
+      }
+
+      discovered.add(link.targetUrl);
+      queued.push({ url: link.targetUrl, depth: depth + 1 });
     }
   }
 
-  return pages;
+  return { pages, crawlErrors };
 }
 
 export async function runLiveSeoCheck({
   siteUrl = process.env.SITE_URL ?? "http://localhost:3000",
   fetchImpl = fetch,
+  fetchTimeoutMs = 10_000,
+  maxPages = 100,
+  maxDepth = 5,
+  maxUrls = 200,
   write = (line) => console.log(line),
 } = {}) {
   const normalizedSiteUrl = new URL(siteUrl).origin;
-  const pages = await fetchLinkedPages({ siteUrl: normalizedSiteUrl, fetchImpl });
+  const { pages, crawlErrors } = await fetchLinkedPages({
+    siteUrl: normalizedSiteUrl,
+    fetchImpl,
+    fetchTimeoutMs,
+    maxPages,
+    maxDepth,
+    maxUrls,
+  });
   const linkErrors = auditInternalLinks({ pages, siteUrl: normalizedSiteUrl });
   const expectedPages = new Set(
     PAGE_EXPECTATIONS.map(({ route }) =>
@@ -487,10 +606,17 @@ export async function runLiveSeoCheck({
 
     if (!page || page.status !== 200) {
       errors.push(
-        error("route-status", `Route ${expected.route} must return HTTP 200.`, {
-          status: page?.status ?? 0,
-          detail: page?.fetchError,
-        }),
+        error(
+          "route-status",
+          `Route ${expected.route} must return HTTP 200.${
+            page?.fetchError ? ` Fetch failed: ${page.fetchError}` : ""
+          }`,
+          {
+            status: page?.status ?? 0,
+            detail: page?.fetchError,
+            fetchError: page?.fetchError,
+          },
+        ),
       );
     } else {
       errors.push(
@@ -512,6 +638,7 @@ export async function runLiveSeoCheck({
     );
     if (expected.route === "/") {
       errors.push(...discoveredPageErrors);
+      errors.push(...crawlErrors);
     }
 
     const result = {

@@ -103,6 +103,18 @@ function pageFixture(pageExpected, extraBody = "") {
   </head><body><h1>${pageExpected.h1}</h1>${extraBody}</body></html>`;
 }
 
+function mockResponse(url, { status = 200, html = "", contentType = "text/html" }) {
+  return {
+    url,
+    status,
+    headers: {
+      get: (name) =>
+        name.toLowerCase() === "content-type" ? contentType : undefined,
+    },
+    text: async () => html,
+  };
+}
+
 async function loadChecker() {
   return import("./check-live-seo.mjs").catch(() => ({}));
 }
@@ -178,6 +190,31 @@ describe("live SEO HTML audit", () => {
         "schema-type",
         "toc-target",
         "faq-schema",
+      ]),
+    );
+  });
+
+  it.each([
+    ["another origin", "https://evil.example/#cleaning"],
+    ["another path", "/guide/#cleaning"],
+    ["another query", "/guide/how-to-clean/?view=evil#cleaning"],
+  ])("rejects a TOC link to %s even when its fragment exists locally", async (_case, href) => {
+    const { auditHtml } = await loadChecker();
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        tocHtml: `<aside aria-label="Table of contents"><a href="${href}">Cleaning</a></aside>`,
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "toc-target", href }),
       ]),
     );
   });
@@ -265,6 +302,30 @@ describe("live SEO HTML audit", () => {
     );
   });
 
+  it("rejects an absolute Article mainEntityOfPage for a different page", async () => {
+    const { auditHtml } = await loadChecker();
+    const wrongUrl = "http://localhost:3000/guide/another-page/";
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          article: { ...validArticle, mainEntityOfPage: wrongUrl },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "article-entity", actual: wrongUrl }),
+      ]),
+    );
+  });
+
   it("rejects a BreadcrumbList with no items", async () => {
     const { auditHtml } = await loadChecker();
     expect(auditHtml).toBeTypeOf("function");
@@ -321,6 +382,94 @@ describe("live SEO HTML audit", () => {
     expect(result.errors.map((auditError) => auditError.code)).toContain(
       "breadcrumb-entity",
     );
+  });
+
+  it("rejects non-contiguous breadcrumb positions", async () => {
+    const { auditHtml } = await loadChecker();
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          breadcrumbs: {
+            ...validBreadcrumbs,
+            itemListElement: [
+              validBreadcrumbs.itemListElement[0],
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: "Cleaning",
+                item: "http://localhost:3000/guide/how-to-clean/",
+              },
+            ],
+          },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.errors.map((auditError) => auditError.code)).toContain(
+      "breadcrumb-entity",
+    );
+  });
+
+  it("rejects a breadcrumb item on another origin", async () => {
+    const { auditHtml } = await loadChecker();
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          breadcrumbs: {
+            ...validBreadcrumbs,
+            itemListElement: [
+              {
+                ...validBreadcrumbs.itemListElement[0],
+                item: "https://evil.example/",
+              },
+            ],
+          },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.errors.map((auditError) => auditError.code)).toContain(
+      "breadcrumb-entity",
+    );
+  });
+
+  it.each([
+    ["Question", "WrongQuestionType", "Answer"],
+    ["accepted Answer", "Question", "WrongAnswerType"],
+  ])("rejects an invalid FAQ %s @type", async (_field, questionType, answerType) => {
+    const { auditHtml } = await loadChecker();
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": questionType,
+          name: faq[0].question,
+          acceptedAnswer: { "@type": answerType, text: faq[0].answer },
+        },
+      ],
+    };
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: `${schemas({ includeFaq: false })}<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`,
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain("faq-entity");
   });
 
   it("rejects blank visible and schema FAQ question-answer text", async () => {
@@ -391,6 +540,249 @@ describe("live SEO HTML audit", () => {
 });
 
 describe("internal link audit", () => {
+  it("times out even when an injected fetch ignores the abort signal", async () => {
+    const { runLiveSeoCheck } = await loadChecker();
+    expect(runLiveSeoCheck).toBeTypeOf("function");
+
+    const fetchOptions = [];
+    const run = runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      fetchTimeoutMs: 10,
+      fetchImpl: (_url, options) => {
+        fetchOptions.push(options);
+        return new Promise(() => undefined);
+      },
+      write: () => undefined,
+    });
+    const testGuard = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("test guard expired")), 250);
+    });
+
+    const results = await Promise.race([run, testGuard]);
+
+    expect(fetchOptions).toHaveLength(3);
+    expect(fetchOptions.every((options) => options.signal instanceof AbortSignal)).toBe(
+      true,
+    );
+    expect(fetchOptions.every((options) => options.signal.aborted)).toBe(true);
+    expect(results).toHaveLength(3);
+    expect(results.every((result) => result.status === 0 && !result.valid)).toBe(true);
+    expect(
+      results.every((result) =>
+        result.errors.some(
+          (auditError) =>
+            auditError.code === "route-status" &&
+            auditError.detail.includes("timed out after 10ms"),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("preserves a required route's concrete network error in structured output", async () => {
+    const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
+    const [, guide] = PAGE_EXPECTATIONS;
+    const fetchImpl = async (url) => {
+      if (url === "http://localhost:3000/") {
+        throw new Error("DNS lookup failed for local test host");
+      }
+      if (url === "http://localhost:3000/guide/") {
+        return mockResponse(url, {
+          html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
+        });
+      }
+      return mockResponse(url, { html: cleaningFixture() });
+    };
+
+    const results = await runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      fetchImpl,
+      write: () => undefined,
+    });
+    const routeError = results[0].errors.find(
+      (auditError) => auditError.code === "route-status",
+    );
+
+    expect(routeError).toMatchObject({
+      status: 0,
+      fetchError: "DNS lookup failed for local test host",
+    });
+    expect(routeError.message).toContain("DNS lookup failed for local test host");
+  });
+
+  it("reports an actionable page-budget error for an unbounded query chain", async () => {
+    const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
+    expect(runLiveSeoCheck).toBeTypeOf("function");
+
+    const fetched = [];
+    const [home, guide] = PAGE_EXPECTATIONS;
+    const fetchImpl = async (url) => {
+      fetched.push(url);
+      if (url === "http://localhost:3000/") {
+        return mockResponse(url, {
+          html: pageFixture(home, '<a href="/loop?n=0">Loop</a>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/") {
+        return mockResponse(url, {
+          html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/how-to-clean/") {
+        return mockResponse(url, { html: cleaningFixture() });
+      }
+      const n = Number(new URL(url).searchParams.get("n"));
+      if (Number.isInteger(n) && n < 20) {
+        return mockResponse(url, {
+          html: `<a href="/loop?n=${n + 1}">Next query page</a>`,
+        });
+      }
+      return new Promise(() => undefined);
+    };
+    const run = runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      fetchImpl,
+      fetchTimeoutMs: 1_000,
+      maxPages: 6,
+      maxDepth: 30,
+      maxUrls: 30,
+      write: () => undefined,
+    });
+    const testGuard = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("test guard expired")), 250);
+    });
+
+    const results = await Promise.race([run, testGuard]);
+    const budgetError = results
+      .flatMap((result) => result.errors)
+      .find((auditError) => auditError.code === "crawl-page-budget");
+
+    expect(fetched).toHaveLength(6);
+    expect(budgetError).toMatchObject({ maxPages: 6 });
+    expect(budgetError.message).toContain("maxPages=6");
+  });
+
+  it.each([
+    ["depth", { maxDepth: 0 }, "crawl-depth-budget", "maxDepth=0"],
+    ["URL", { maxUrls: 3 }, "crawl-url-budget", "maxUrls=3"],
+  ])(
+    "reports an actionable %s-budget error instead of silently truncating",
+    async (_budget, limits, code, messagePart) => {
+      const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
+      const [home, guide] = PAGE_EXPECTATIONS;
+      const fetched = [];
+      const fetchImpl = async (url) => {
+        fetched.push(url);
+        if (url === "http://localhost:3000/") {
+          return mockResponse(url, {
+            html: pageFixture(home, '<a href="/extra/">Extra</a>'),
+          });
+        }
+        if (url === "http://localhost:3000/guide/") {
+          return mockResponse(url, {
+            html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
+          });
+        }
+        if (url === "http://localhost:3000/guide/how-to-clean/") {
+          return mockResponse(url, { html: cleaningFixture() });
+        }
+        return mockResponse(url, { html: "<p>Extra</p>" });
+      };
+
+      const results = await runLiveSeoCheck({
+        siteUrl: "http://localhost:3000",
+        fetchImpl,
+        ...limits,
+        write: () => undefined,
+      });
+      const budgetError = results
+        .flatMap((result) => result.errors)
+        .find((auditError) => auditError.code === code);
+
+      expect(fetched).not.toContain("http://localhost:3000/extra/");
+      expect(budgetError.message).toContain(messagePart);
+      expect(budgetError).toMatchObject({
+        sourceUrl: "http://localhost:3000/",
+        targetUrl: "http://localhost:3000/extra/",
+      });
+    },
+  );
+
+  it("does not parse or enqueue links from a non-HTML response", async () => {
+    const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
+    const [home, guide] = PAGE_EXPECTATIONS;
+    const fetched = [];
+    const fetchImpl = async (url) => {
+      fetched.push(url);
+      if (url === "http://localhost:3000/") {
+        return mockResponse(url, {
+          html: pageFixture(home, '<a href="/download/">Download</a>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/") {
+        return mockResponse(url, {
+          html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/how-to-clean/") {
+        return mockResponse(url, { html: cleaningFixture() });
+      }
+      if (url === "http://localhost:3000/download/") {
+        return mockResponse(url, {
+          contentType: "application/pdf",
+          html: '<a href="/should-not-fetch/">PDF-like bytes</a>',
+        });
+      }
+      return mockResponse(url, { status: 404, html: "Not found" });
+    };
+
+    await runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      fetchImpl,
+      write: () => undefined,
+    });
+
+    expect(fetched).toContain("http://localhost:3000/download/");
+    expect(fetched).not.toContain("http://localhost:3000/should-not-fetch/");
+  });
+
+  it("does not parse or enqueue links from a non-2xx response", async () => {
+    const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
+    const [home, guide] = PAGE_EXPECTATIONS;
+    const fetched = [];
+    const fetchImpl = async (url) => {
+      fetched.push(url);
+      if (url === "http://localhost:3000/") {
+        return mockResponse(url, {
+          html: pageFixture(home, '<a href="/gone/">Gone</a>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/") {
+        return mockResponse(url, {
+          html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
+        });
+      }
+      if (url === "http://localhost:3000/guide/how-to-clean/") {
+        return mockResponse(url, { html: cleaningFixture() });
+      }
+      if (url === "http://localhost:3000/gone/") {
+        return mockResponse(url, {
+          status: 404,
+          html: '<a href="/should-not-fetch/">Error-page link</a>',
+        });
+      }
+      return mockResponse(url, { status: 404, html: "Not found" });
+    };
+
+    await runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      fetchImpl,
+      write: () => undefined,
+    });
+
+    expect(fetched).toContain("http://localhost:3000/gone/");
+    expect(fetched).not.toContain("http://localhost:3000/should-not-fetch/");
+  });
+
   it("accepts live pages whose internal routes and fragments resolve", async () => {
     const { auditInternalLinks } = await loadChecker();
     expect(auditInternalLinks).toBeTypeOf("function");
@@ -443,13 +835,14 @@ describe("internal link audit", () => {
         { status: 200, html: '<a href="/missing/">Broken nested link</a>' },
       ],
     ]);
+    const fetched = [];
     const fetchImpl = async (url) => {
+      fetched.push(url);
+      if (url === "http://localhost:3000/missing/") {
+        throw new Error("socket exploded while fetching missing page");
+      }
       const response = responses.get(url) ?? { status: 404, html: "Not found" };
-      return {
-        url,
-        status: response.status,
-        text: async () => response.html,
-      };
+      return mockResponse(url, response);
     };
 
     const results = await runLiveSeoCheck({
@@ -458,10 +851,19 @@ describe("internal link audit", () => {
       write: () => undefined,
     });
 
-    expect(results.some((result) => !result.valid)).toBe(true);
-    expect(
-      results.flatMap((result) => result.errors).map((auditError) => auditError.code),
-    ).toContain("internal-route-status");
+    expect(fetched).toContain("http://localhost:3000/missing/");
+    const deadLinkError = results
+      .flatMap((result) => result.errors)
+      .find((auditError) => auditError.code === "internal-route-status");
+    expect(deadLinkError).toMatchObject({
+      sourceUrl: "http://localhost:3000/extra/",
+      targetUrl: "http://localhost:3000/missing/",
+      status: 0,
+      fetchError: "socket exploded while fetching missing page",
+    });
+    expect(deadLinkError.message).toContain(
+      "socket exploded while fetching missing page",
+    );
   });
 
   it("requests manual redirects and rejects a redirected required route", async () => {
