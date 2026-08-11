@@ -109,14 +109,19 @@ describe("SiteHeader", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("closes the menu when Escape is pressed", () => {
+  it("closes the menu and restores button focus when Escape is pressed", () => {
     render(<SiteHeader />);
 
     const button = screen.getByRole("button", { name: "Menu" });
     fireEvent.click(button);
+    const link = screen.getByRole("link", { name: "Guides" });
+    link.focus();
+    expect(link).toHaveFocus();
+
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(button).toHaveFocus();
   });
 
   it("closes the menu from every site and Steam link", () => {

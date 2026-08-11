@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { routes, siteConfig } from "@/data/site";
 
@@ -22,17 +22,23 @@ export function SiteHeader() {
     getServerSnapshot,
   );
   const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (!open) {
+      return;
+    }
+
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        menuButtonRef.current?.focus();
       }
     };
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, []);
+  }, [open]);
 
   const closeMenu = () => setOpen(false);
 
@@ -52,6 +58,7 @@ export function SiteHeader() {
         </Link>
 
         <button
+          ref={menuButtonRef}
           className="menu-button"
           type="button"
           aria-label="Menu"

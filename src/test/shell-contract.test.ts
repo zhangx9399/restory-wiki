@@ -105,4 +105,12 @@ describe("shared shell contracts", () => {
     expect(contrastRatio("#17464c", "#f2c84b")).toBeGreaterThanOrEqual(3);
     expect(contrastRatio("#4f5e62", "#eee9dc")).toBeGreaterThanOrEqual(4.5);
   });
+
+  it("uses a visible focus outline inside the dark footer", () => {
+    expect(css).toMatch(
+      /\.site-footer :focus-visible\s*\{[^}]*outline-color:\s*var\(--yellow\)/,
+    );
+    expect(contrastRatio("#f2c84b", "#17464c")).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio("#17464c", "#f2c84b")).toBeGreaterThanOrEqual(3);
+  });
 });
