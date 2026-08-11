@@ -1,27 +1,35 @@
-export type GuideStatus = "published" | "coming-next";
+import { routes } from "@/data/site";
 
-export type GuideCategory =
-  | "Getting Started"
-  | "Repair & Cleaning"
-  | "Shop & Customization"
-  | "Technical Help";
-
-export interface GuideEntry {
-  title: string;
-  description: string;
-  category: GuideCategory;
-  href?: string;
-  status: GuideStatus;
-}
-
-export const guideCategories: readonly GuideCategory[] = [
+export const guideCategories = [
   "Getting Started",
   "Repair & Cleaning",
   "Shop & Customization",
   "Technical Help",
-];
+] as const;
 
-export const guideEntries: readonly GuideEntry[] = [
+export type GuideCategory = (typeof guideCategories)[number];
+
+export type GuideStatus = "published" | "coming-next";
+
+type GuideEntryDetails = Readonly<{
+  title: string;
+  description: string;
+  category: GuideCategory;
+}>;
+
+export type GuideEntry =
+  | (GuideEntryDetails &
+      Readonly<{
+        status: "published";
+        href: string;
+      }>)
+  | (GuideEntryDetails &
+      Readonly<{
+        status: "coming-next";
+        href?: never;
+      }>);
+
+export const guideEntries = [
   {
     title: "Beginner Guide",
     description:
@@ -41,7 +49,7 @@ export const guideEntries: readonly GuideEntry[] = [
     description:
       "Clean the first Pokia device and troubleshoot dirt that will not disappear.",
     category: "Repair & Cleaning",
-    href: "/guide/how-to-clean/",
+    href: routes.cleaning,
     status: "published",
   },
   {
@@ -78,4 +86,4 @@ export const guideEntries: readonly GuideEntry[] = [
     category: "Technical Help",
     status: "coming-next",
   },
-];
+] as const satisfies readonly GuideEntry[];
