@@ -41,6 +41,19 @@ function expectedUrl(siteUrl, route) {
   return new URL(route, siteUrl).href;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === "string" && normalizeText(value).length > 0;
+}
+
+function isAbsoluteHttpUrl(value) {
+  if (!isNonEmptyString(value)) return false;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
 function schemaTypes(value) {
   if (Array.isArray(value)) {
     return value.flatMap(schemaTypes);
@@ -139,7 +152,7 @@ function parseJsonLd($, errors) {
   return schemas;
 }
 
-function auditCleaningPage($, schemas, errors) {
+function auditCleaningPage($, schemas, errors, expected) {
   const tableOfContents = $('[aria-label="Table of contents"]');
   const tocLinks = tableOfContents.find("a[href]");
   if (tableOfContents.length !== 1 || tocLinks.length === 0) {
@@ -162,6 +175,45 @@ function auditCleaningPage($, schemas, errors) {
     }
   });
 
+  const articleSchema = findSchemaByType(schemas, "Article");
+  if (
+    articleSchema &&
+    (!isNonEmptyString(articleSchema.headline) ||
+      normalizeText(articleSchema.headline) !== normalizeText(expected.h1) ||
+      !isNonEmptyString(articleSchema.description) ||
+      normalizeText(articleSchema.description) !==
+        normalizeText(expected.description) ||
+      !isAbsoluteHttpUrl(articleSchema.mainEntityOfPage))
+  ) {
+    errors.push(
+      error(
+        "article-entity",
+        "Article must match the page headline and description and have an absolute mainEntityOfPage URL.",
+      ),
+    );
+  }
+
+  const breadcrumbSchema = findSchemaByType(schemas, "BreadcrumbList");
+  if (
+    breadcrumbSchema &&
+    (!Array.isArray(breadcrumbSchema.itemListElement) ||
+      breadcrumbSchema.itemListElement.length === 0 ||
+      breadcrumbSchema.itemListElement.some(
+        (item) =>
+          !Number.isInteger(item?.position) ||
+          item.position < 1 ||
+          !isNonEmptyString(item?.name) ||
+          !isAbsoluteHttpUrl(item?.item),
+      ))
+  ) {
+    errors.push(
+      error(
+        "breadcrumb-entity",
+        "BreadcrumbList must have entries with positive positions, names, and absolute item URLs.",
+      ),
+    );
+  }
+
   const faqSchema = findSchemaByType(schemas, "FAQPage");
   if (!faqSchema || !Array.isArray(faqSchema.mainEntity)) {
     errors.push(error("faq-schema", "FAQPage mainEntity is missing or invalid."));
@@ -177,6 +229,13 @@ function auditCleaningPage($, schemas, errors) {
   if (visibleFaq.length === 0) {
     errors.push(error("faq-visible", "Cleaning page must have visible FAQ entries."));
   }
+  if (
+    visibleFaq.some(
+      (item) => !isNonEmptyString(item.question) || !isNonEmptyString(item.answer),
+    )
+  ) {
+    errors.push(error("faq-visible", "Visible FAQ questions and answers must be non-empty."));
+  }
   const schemaFaq = faqSchema.mainEntity.map((item) => ({
     question: normalizeText(typeof item?.name === "string" ? item.name : ""),
     answer: normalizeText(
@@ -187,6 +246,20 @@ function auditCleaningPage($, schemas, errors) {
   }));
   if (schemaFaq.length === 0) {
     errors.push(error("faq-schema", "FAQPage must have at least one question."));
+  }
+  if (
+    faqSchema.mainEntity.some(
+      (item) =>
+        !isNonEmptyString(item?.name) ||
+        !isNonEmptyString(item?.acceptedAnswer?.text),
+    )
+  ) {
+    errors.push(
+      error(
+        "faq-entity",
+        "FAQPage questions and accepted answers must have non-empty text.",
+      ),
+    );
   }
 
   if (JSON.stringify(visibleFaq) !== JSON.stringify(schemaFaq)) {
@@ -239,7 +312,7 @@ export function auditHtml({
     }
   }
   if (checkCleaningPage) {
-    auditCleaningPage($, parsedSchemas, errors);
+    auditCleaningPage($, parsedSchemas, errors, expected);
   }
 
   return { valid: errors.length === 0, errors };

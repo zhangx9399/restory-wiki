@@ -15,16 +15,41 @@ const faq = [
   },
 ];
 
-function schemas({ malformed = false, includeFaq = true, emptyFaq = false } = {}) {
-  const values = [
-    { "@context": "https://schema.org", "@type": "Article" },
-    { "@context": "https://schema.org", "@type": "BreadcrumbList" },
-  ];
+const validArticle = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: expected.h1,
+  description: expected.description,
+  mainEntityOfPage: "http://localhost:3000/guide/how-to-clean/",
+};
+
+const validBreadcrumbs = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "http://localhost:3000/",
+    },
+  ],
+};
+
+function schemas({
+  malformed = false,
+  includeFaq = true,
+  emptyFaq = false,
+  article = validArticle,
+  breadcrumbs = validBreadcrumbs,
+  faqItems = faq,
+} = {}) {
+  const values = [article, breadcrumbs];
   if (includeFaq) {
     values.push({
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: (emptyFaq ? [] : faq).map((item) => ({
+      mainEntity: (emptyFaq ? [] : faqItems).map((item) => ({
         "@type": "Question",
         name: item.question,
         acceptedAnswer: { "@type": "Answer", text: item.answer },
@@ -177,6 +202,191 @@ describe("live SEO HTML audit", () => {
     expect(result.errors.map((auditError) => auditError.code)).toEqual(
       expect.arrayContaining(["toc-missing", "faq-visible", "faq-schema"]),
     );
+  });
+
+  it("rejects incomplete Article and BreadcrumbList entities", async () => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          article: {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: " ",
+            description: 42,
+            mainEntityOfPage: "not-an-absolute-url",
+          },
+          breadcrumbs: {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 0, name: " ", item: "relative" },
+            ],
+          },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toEqual(
+      expect.arrayContaining(["article-entity", "breadcrumb-entity"]),
+    );
+  });
+
+  it.each([
+    ["headline", { headline: "A different non-empty headline" }],
+    ["description", { description: "A different non-empty description" }],
+    ["mainEntityOfPage", { mainEntityOfPage: "relative-page" }],
+  ])("rejects an invalid Article %s field", async (_field, articleOverride) => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          article: { ...validArticle, ...articleOverride },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain(
+      "article-entity",
+    );
+  });
+
+  it("rejects a BreadcrumbList with no items", async () => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          breadcrumbs: {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [],
+          },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain(
+      "breadcrumb-entity",
+    );
+  });
+
+  it.each([
+    ["position type", { position: "1" }],
+    ["positive position", { position: 0 }],
+    ["name", { name: " " }],
+    ["item URL", { item: "relative-item" }],
+  ])("rejects an invalid breadcrumb %s field", async (_field, itemOverride) => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({
+          breadcrumbs: {
+            ...validBreadcrumbs,
+            itemListElement: [
+              { ...validBreadcrumbs.itemListElement[0], ...itemOverride },
+            ],
+          },
+        }),
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain(
+      "breadcrumb-entity",
+    );
+  });
+
+  it("rejects blank visible and schema FAQ question-answer text", async () => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({
+        jsonLd: schemas({ faqItems: [{ question: " ", answer: " " }] }),
+        faqHtml:
+          '<div class="faq-list"><details><summary> </summary><p> </p></details></div>',
+      }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toEqual(
+      expect.arrayContaining(["faq-visible", "faq-entity"]),
+    );
+  });
+
+  it.each([
+    ["question", { question: " ", answer: faq[0].answer }],
+    ["answer", { question: faq[0].question, answer: " " }],
+  ])("rejects blank schema FAQ %s text", async (_field, faqItem) => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({ jsonLd: schemas({ faqItems: [faqItem] }) }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain("faq-entity");
+  });
+
+  it.each([
+    [
+      "question",
+      `<div class="faq-list"><details><summary> </summary><p>${faq[0].answer}</p></details></div>`,
+    ],
+    [
+      "answer",
+      `<div class="faq-list"><details><summary>${faq[0].question}</summary><p> </p></details></div>`,
+    ],
+  ])("rejects blank visible FAQ %s text", async (_field, faqHtml) => {
+    const { auditHtml } = await loadChecker();
+    expect(auditHtml).toBeTypeOf("function");
+
+    const result = auditHtml({
+      route: "/guide/how-to-clean/",
+      html: cleaningFixture({ faqHtml }),
+      siteUrl: "http://localhost:3000",
+      expected,
+      checkCleaningPage: true,
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((auditError) => auditError.code)).toContain("faq-visible");
   });
 });
 
