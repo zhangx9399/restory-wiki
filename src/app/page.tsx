@@ -113,7 +113,7 @@ export default function HomePage() {
               <GuideCard key={guide.title} guide={guide} />
             ))}
           </div>
-          <h3>Browse by category</h3>
+          <h3 className="browse-heading">Browse by category</h3>
           <CategoryTabs />
         </div>
       </section>

@@ -1,9 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import HomePage, { metadata } from "@/app/page";
 import { guideEntries } from "@/data/guides";
 import { pageSeo, routes, siteConfig } from "@/data/site";
+
+const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
 afterEach(cleanup);
 
@@ -107,6 +111,7 @@ describe("HomePage", () => {
       level: 3,
       name: "Browse by category",
     });
+    expect(browseHeading).toHaveClass("browse-heading");
     const tablist = within(startSection as HTMLElement).getByRole("tablist", {
       name: "Guide categories",
     });
@@ -117,6 +122,12 @@ describe("HomePage", () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
     expect(container.querySelectorAll("h1")).toHaveLength(1);
+  });
+
+  it("separates the category browser from the featured guide cards", () => {
+    expect(css).toMatch(
+      /\.browse-heading\s*\{[^}]*margin-block:\s*clamp\(2rem,\s*4vw,\s*3rem\)\s+1rem\s*;/,
+    );
   });
 
   it("presents quick facts as a description list", () => {

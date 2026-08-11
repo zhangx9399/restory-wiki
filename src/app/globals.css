@@ -508,6 +508,10 @@ p.hero-copy,
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.browse-heading {
+  margin-block: clamp(2rem, 4vw, 3rem) 1rem;
+}
+
 .guide-card {
   position: relative;
   display: flex;
