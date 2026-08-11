@@ -1,8 +1,8 @@
 import createMDX from "@next/mdx";
-import rehypeSlug from "rehype-slug";
 
 const withMDX = createMDX({
-  options: { mdxOptions: { rehypePlugins: [rehypeSlug] } },
+  extension: /\.(md|mdx)$/,
+  options: { rehypePlugins: ["rehype-slug"] },
 });
 
 export default withMDX({
