@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { routes, siteConfig } from "@/data/site";
 
@@ -11,13 +11,40 @@ const navigationItems = [
   { label: "Cleaning Guide", href: routes.cleaning },
 ] as const;
 
+const subscribeToHydration = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function SiteHeader() {
+  const enhanced = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, []);
+
+  const closeMenu = () => setOpen(false);
+
   return (
-    <header className="site-header">
+    <header className="site-header" data-enhanced={enhanced}>
       <div className="shell header-inner">
-        <Link className="brand" href={routes.home} aria-label="ReStory Wiki home">
+        <Link
+          className="brand"
+          href={routes.home}
+          aria-label="ReStory Wiki home"
+          onClick={closeMenu}
+        >
           <span className="brand-logo" aria-hidden="true">
             <span />
           </span>
@@ -44,7 +71,7 @@ export function SiteHeader() {
           data-open={open}
         >
           {navigationItems.map((item) => (
-            <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+            <Link key={item.href} href={item.href} onClick={closeMenu}>
               {item.label}
             </Link>
           ))}
@@ -53,6 +80,7 @@ export function SiteHeader() {
             href={siteConfig.steamUrl}
             target="_blank"
             rel="noreferrer"
+            onClick={closeMenu}
           >
             Official Steam
             <span aria-hidden="true"> ↗</span>

@@ -1,5 +1,13 @@
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue };
+
 type JsonLdProps = Readonly<{
-  data: unknown;
+  data: JsonValue;
 }>;
 
 export function JsonLd({ data }: JsonLdProps) {

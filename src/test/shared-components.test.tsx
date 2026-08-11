@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -74,11 +75,21 @@ describe("Breadcrumbs", () => {
 });
 
 describe("SiteHeader", () => {
+  it("server-renders navigation in the unenhanced state", () => {
+    const html = renderToStaticMarkup(<SiteHeader />);
+
+    expect(html).toContain('data-enhanced="false"');
+    expect(html).toContain('id="site-nav"');
+    expect(html).toContain("Official Steam");
+  });
+
   it("opens the mobile navigation and updates its accessible state", () => {
     render(<SiteHeader />);
 
+    const header = screen.getByRole("banner");
     const button = screen.getByRole("button", { name: "Menu" });
     const nav = screen.getByRole("navigation", { name: "Primary navigation" });
+    expect(header).toHaveAttribute("data-enhanced", "true");
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(nav).toHaveAttribute("data-open", "false");
 
@@ -86,5 +97,45 @@ describe("SiteHeader", () => {
 
     expect(button).toHaveAttribute("aria-expanded", "true");
     expect(nav).toHaveAttribute("data-open", "true");
+  });
+
+  it("closes the menu when the button is clicked a second time", () => {
+    render(<SiteHeader />);
+
+    const button = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes the menu when Escape is pressed", () => {
+    render(<SiteHeader />);
+
+    const button = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(button);
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes the menu from every site and Steam link", () => {
+    render(<SiteHeader />);
+
+    const button = screen.getByRole("button", { name: "Menu" });
+    const links = screen.getAllByRole("link");
+    const preventNavigation = (event: MouseEvent) => event.preventDefault();
+    document.addEventListener("click", preventNavigation, true);
+
+    try {
+      for (const link of links) {
+        fireEvent.click(button);
+        expect(button).toHaveAttribute("aria-expanded", "true");
+        fireEvent.click(link);
+        expect(button).toHaveAttribute("aria-expanded", "false");
+      }
+    } finally {
+      document.removeEventListener("click", preventNavigation, true);
+    }
   });
 });
