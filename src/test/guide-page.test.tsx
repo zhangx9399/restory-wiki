@@ -42,14 +42,18 @@ describe("GuidePage", () => {
     expect(h1s).toHaveLength(1);
     expect(h1s[0]).toHaveTextContent("ReStory Guides");
 
-    const hero = container.querySelector("section.page-hero > div.shell");
+    const hero = container.querySelector("header.page-hero");
     expect(hero).toBeInTheDocument();
+    expect(hero?.querySelector(":scope > div.shell")).toBeInTheDocument();
     expect(within(hero as HTMLElement).getByText("Source-labeled walkthroughs", {
       selector: ".eyebrow",
     })).toBeInTheDocument();
-    expect(within(hero as HTMLElement).getByText(
-      "Start with cleaning and expand into repairs, shop management, customization, and technical help. Published pages are clickable; upcoming topics are clearly labeled.",
-    )).toBeInTheDocument();
+    expect(
+      within(hero as HTMLElement).getByText(
+        "Start with cleaning and expand into repairs, shop management, customization, and technical help. Published pages are clickable; upcoming topics are clearly labeled.",
+        { selector: "p.hero-copy" },
+      ),
+    ).toBeInTheDocument();
 
     const breadcrumbs = within(hero as HTMLElement).getByRole("navigation", {
       name: "Breadcrumb",

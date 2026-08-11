@@ -45,7 +45,7 @@ export default function GuidePage() {
       <JsonLd data={collectionPageSchema} />
       <JsonLd data={guideBreadcrumbSchema} />
 
-      <section className="page-hero">
+      <header className="page-hero">
         <div className="shell">
           <Breadcrumbs
             items={[
@@ -55,13 +55,13 @@ export default function GuidePage() {
           />
           <p className="eyebrow">Source-labeled walkthroughs</p>
           <h1>{pageSeo.guide.h1}</h1>
-          <p>
+          <p className="hero-copy">
             Start with cleaning and expand into repairs, shop management,
             customization, and technical help. Published pages are clickable;
             upcoming topics are clearly labeled.
           </p>
         </div>
-      </section>
+      </header>
 
       <div className="section shell">
         {guideCategories.map((category) => (
