@@ -1,0 +1,81 @@
+import { FaqList } from "@/components/faq-list";
+import { cleaningFaqItems } from "@/data/cleaning";
+
+<div className="quick-answer">
+
+**Quick answer:** Remove the dirty part, move it into the cleaning area by the cup on the upper-right of the workbench, enter the cleaning interaction, and use the scrubbing action. If sound plays but dirt does not change, follow the checklist. The cup is a clue from a late-2025 player discussion that may reflect a demo or pre-release build, not a fixed official control instruction; follow the visible interface in the current release.
+
+</div>
+
+## How Cleaning Works in ReStory
+
+The official Steam description establishes the broad repair loop: take a gadget apart, clean it, replace faulty parts, and assemble it again. It also describes an in-depth cleaning and restoration system. This confirms that cleaning components belongs in a normal repair, but the store page does not document a permanent button label, keyboard key, or every workbench gesture.
+
+In practice, cleaning is applied to a removed part in the appropriate work area, not automatically to a whole device anywhere on the bench. A part can look close to a station without being accepted.
+
+The Steam store supports only that broad repair loop. The upper-right cup detail comes from a late-2025 player discussion that may reflect a demo or pre-release build. Follow the visible interface in the current release; the report suggests checks but does not prove one cause.
+
+## Cleaning the First Pokia Device
+
+Expose and select the visibly dirty component rather than moving the complete Pokia device or a nearby clean piece. Disassembly gives the cleaning interaction a specific component. If several loose pieces are on the bench, confirm which one still shows dirt.
+
+A late-2025 reply in “Stuck at First Item” reports an upper-right cup or cleaning spot, but it may describe a demo or pre-release build rather than the current release. Follow the visible interface, then look for it to accept the component or open a cleaning interaction; resting the part nearby may not establish that state.
+
+Once the interaction is active, use its scrubbing action and watch the dirty surface for visual progress. Sound alone is weak evidence: players in the cited thread heard cleaning audio while dirt remained. If the surface does not change, check placement, selection, input, and session state.
+
+## Using the Correct Workbench Area
+
+The workbench stages have different purposes. Disassembly exposes components. The cleaning area accepts a dirty part. General parts handling moves or inspects loose pieces. Reassembly returns completed components to the device. A movable part is not necessarily in the cleaning interaction.
+
+Before scrubbing, verify three conditions: the dirty component is selected, the cleaning area has accepted it, and the cleaning interaction has opened. If one is missing, back out and repeat the placement instead of assuming the dirt texture is broken.
+
+Prompts can vary with game version, control method, and interface state. This guide does not invent a keyboard key, mouse button, controller button, or permanent label. For cautious troubleshooting, try selection, station engagement, then scrubbing. The upper-right cup clue is from a late-2025 player discussion that may reflect a demo or pre-release build; prioritize the visible interface in the current release.
+
+## Why Dirt Is Not Disappearing
+
+These checks move from local interaction problems to session recovery. They are safe steps, not diagnoses; separate player reports do not demonstrate one shared technical cause.
+
+### The part is near the station but not engaged
+
+A late-2025 player reply reports an upper-right cleaning area, but it may reflect a demo or pre-release build. Treat that location only as a clue: the current interface takes priority. Confirm engagement, then reposition the component if needed.
+
+### The wrong object is selected
+
+The complete device, a cover, or another piece may be selected while the dirty component is not. Compare the selected piece with the visible dirt and repair objective. Clear overlaps if needed, then place only the dirty component in the cleaning area.
+
+### The input is not registering correctly
+
+If visual progress does not respond, release the input and retry the on-screen scrubbing action. Avoid guessing a key from an older post. Check whether pointer movement works normally, and disconnect conflicting devices only as a safe, reversible test.
+
+Audio can start even when dirt does not change, according to the cited player thread. Therefore, use visual progress as the deciding signal. Sound confirms that some feedback played; it does not by itself confirm that the component is being cleaned.
+
+### The current session may be stuck
+
+Exit the cleaning interaction, return to normal workbench handling, and re-enter it. If the same correctly selected component still shows no response, reload the current session or restart the game. Preserve your save through normal in-game options. Reinstallation is a later measure: one player reported that reinstalling did not resolve their issue, so it should not be the first response.
+
+After restarting, repeat the smallest clean sequence. If it still fails, record the game version, input method, device, and component for a useful bug report.
+
+## Cleaning Troubleshooting Checklist
+
+1. Confirm that the current repair objective and visible surface indicate that this component needs cleaning.
+2. Disassemble enough of the device to expose and select the actual dirty component, not the complete device or a clean neighbor.
+3. Use the late-2025 player's upper-right cup clue only if the visible interface in the current release supports it; the report may reflect a demo or pre-release build.
+4. Wait for the cleaning interaction or its visible prompt to open before starting the scrubbing action.
+5. Watch for visual dirt or progress changes instead of using cleaning sound alone as proof of progress.
+6. Exit the cleaning interaction, reposition the same component, and enter the interaction again.
+7. If progress still does not appear, reload the current session and then restart the game using normal save-safe steps.
+8. If the issue continues, report the game version, input method, Pokia component, and the exact point where visual progress stops.
+
+Run the list in order so each attempt changes one likely condition. This helps isolate selection, station, input, or session state and produces a clearer report.
+
+## Frequently Asked Questions
+
+<FaqList items={cleaningFaqItems} />
+
+## Sources and Evidence Notes
+
+- **Official source — [ReStory Steam store](https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/):** supports the core repair loop of taking gadgets apart, cleaning them, replacing faulty parts, and assembling them again. It does not document the cup location or a fixed cleaning control.
+- **Player report — [“Stuck at First Item”](https://steamcommunity.com/app/3812600/discussions/1/684114096137749161/):** a late-2025 discussion reports the upper-right cup clue and cleaning sound without visible dirt progress. It may reflect a demo or pre-release build, is not an official control specification, and does not show one cause for every report. Follow the visible interface in the current release.
+- **Player reports — [Bugs & Technical Issues](https://steamcommunity.com/app/3812600/discussions/1/):** supports only that players report technical and interaction problems. The forum index does not establish a universal diagnosis and does not establish a universal fix.
+
+Last evidence review: Aug 10, 2026. Recheck the official description, current interface, and relevant player reports after a major game update because workbench prompts or behavior may change.
