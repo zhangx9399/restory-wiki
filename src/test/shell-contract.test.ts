@@ -39,6 +39,12 @@ describe("shared shell contracts", () => {
     expect(metadata.title).toBe(siteConfig.name);
   });
 
+  it("publishes the Google Search Console verification token in root metadata", () => {
+    expect(metadata.verification).toEqual({
+      google: "Ep3Oxysb_TsnAHENqTxNMh8UV1kM72k-LJgxZIArZaY",
+    });
+  });
+
   it("supports every class name reserved by the page implementation plan", () => {
     for (const selector of [
       ".hero-grid",

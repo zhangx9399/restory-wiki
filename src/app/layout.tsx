@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   applicationName: siteConfig.name,
   title: siteConfig.name,
   description: siteConfig.description,
+  verification: {
+    google: "Ep3Oxysb_TsnAHENqTxNMh8UV1kM72k-LJgxZIArZaY",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
