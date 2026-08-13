@@ -1,6 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("metadata routes", () => {
+  beforeEach(() => {
+    vi.stubEnv("SITE_URL", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    vi.stubEnv("VERCEL_URL", "");
+    vi.resetModules();
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.resetModules();
