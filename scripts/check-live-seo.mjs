@@ -342,6 +342,30 @@ export function auditHtml({
   return { valid: errors.length === 0, errors };
 }
 
+export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText }) {
+  const origin = new URL(siteUrl).origin;
+  const routes = ["/", "/guide/", "/guide/how-to-clean/"];
+  const errors = [];
+
+  if (new URL(origin).protocol === "https:" && /localhost(?::\d+)?/i.test(sitemapXml)) {
+    errors.push("sitemap.xml must not contain localhost on a public deployment");
+  }
+
+  for (const route of routes) {
+    const expected = new URL(route, `${origin}/`).toString();
+    if (!sitemapXml.includes(`<loc>${expected}</loc>`)) {
+      errors.push(`sitemap.xml is missing ${route}`);
+    }
+  }
+
+  const sitemapUrl = new URL("/sitemap.xml", `${origin}/`).toString();
+  if (!robotsText.includes(`Sitemap: ${sitemapUrl}`)) {
+    errors.push("robots.txt sitemap does not match the canonical origin");
+  }
+
+  return errors;
+}
+
 function alternatePageUrl(url) {
   const parsed = new URL(url);
   if (parsed.pathname === "/") return undefined;

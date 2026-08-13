@@ -119,6 +119,41 @@ async function loadChecker() {
   return import("./check-live-seo.mjs").catch(() => ({}));
 }
 
+describe("public discovery-file audit", () => {
+  it("accepts canonical public sitemap and robots files", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    expect(auditDiscoveryFiles).toBeTypeOf("function");
+
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: "https://restory-wiki.vercel.app",
+        sitemapXml: `<?xml version="1.0"?><urlset><url><loc>https://restory-wiki.vercel.app/</loc></url><url><loc>https://restory-wiki.vercel.app/guide/</loc></url><url><loc>https://restory-wiki.vercel.app/guide/how-to-clean/</loc></url></urlset>`,
+        robotsText: "User-agent: *\nSitemap: https://restory-wiki.vercel.app/sitemap.xml",
+      }),
+    ).toEqual([]);
+  });
+
+  it("reports localhost sitemap entries, missing public routes, and a wrong robots sitemap", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    expect(auditDiscoveryFiles).toBeTypeOf("function");
+
+    const errors = auditDiscoveryFiles({
+      siteUrl: "https://restory-wiki.vercel.app",
+      sitemapXml: "<urlset><url><loc>http://localhost:3000/</loc></url></urlset>",
+      robotsText: "User-agent: *\nSitemap: https://wrong.example/sitemap.xml",
+    });
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        "sitemap.xml must not contain localhost on a public deployment",
+        "sitemap.xml is missing /guide/",
+        "sitemap.xml is missing /guide/how-to-clean/",
+        "robots.txt sitemap does not match the canonical origin",
+      ]),
+    );
+  });
+});
+
 describe("live SEO HTML audit", () => {
   it("accepts a complete cleaning-page fixture", async () => {
     const { auditHtml } = await loadChecker();
