@@ -120,15 +120,19 @@ async function loadChecker() {
 }
 
 describe("public discovery-file audit", () => {
+  const publicSiteUrl = "https://restory-wiki.vercel.app";
+  const publicSitemap = `<?xml version="1.0"?><urlset><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+  const publicRobots = `User-agent: *\nSitemap: ${publicSiteUrl}/sitemap.xml`;
+
   it("accepts canonical public sitemap and robots files", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
     expect(auditDiscoveryFiles).toBeTypeOf("function");
 
     expect(
       auditDiscoveryFiles({
-        siteUrl: "https://restory-wiki.vercel.app",
-        sitemapXml: `<?xml version="1.0"?><urlset><url><loc>https://restory-wiki.vercel.app/</loc></url><url><loc>https://restory-wiki.vercel.app/guide/</loc></url><url><loc>https://restory-wiki.vercel.app/guide/how-to-clean/</loc></url></urlset>`,
-        robotsText: "User-agent: *\nSitemap: https://restory-wiki.vercel.app/sitemap.xml",
+        siteUrl: publicSiteUrl,
+        sitemapXml: publicSitemap,
+        robotsText: publicRobots,
       }),
     ).toEqual([]);
   });
@@ -151,6 +155,76 @@ describe("public discovery-file audit", () => {
         "robots.txt sitemap does not match the canonical origin",
       ]),
     );
+  });
+
+  it.each([
+    ["an extra loc", publicSitemap.replace("</urlset>", `<url><loc>${publicSiteUrl}/extra/</loc></url></urlset>`)],
+    ["a duplicate loc", publicSitemap.replace("</urlset>", `<url><loc>${publicSiteUrl}/guide/</loc></url></urlset>`)],
+  ])("rejects sitemap with %s", async (_case, sitemapXml) => {
+    const { auditDiscoveryFiles } = await loadChecker();
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual(
+      expect.arrayContaining(["sitemap.xml contains unexpected or duplicate URLs"]),
+    );
+  });
+
+  it("ignores commented-out sitemap locs", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const sitemapXml = `<!-- ${publicSitemap} --><urlset></urlset>`;
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual(
+      expect.arrayContaining([
+        "sitemap.xml is missing /",
+        "sitemap.xml is missing /guide/",
+        "sitemap.xml is missing /guide/how-to-clean/",
+      ]),
+    );
+  });
+
+  it.each([
+    ["a commented directive", `# Sitemap: ${publicSiteUrl}/sitemap.xml`],
+    ["a prefixed directive", `NotSitemap: ${publicSiteUrl}/sitemap.xml`],
+    ["a suffixed URL", `Sitemap: ${publicSiteUrl}/sitemap.xml.evil`],
+    ["multiple directives", `${publicRobots}\nSitemap: https://wrong.example/sitemap.xml`],
+  ])("rejects robots with %s", async (_case, robotsText) => {
+    const { auditDiscoveryFiles } = await loadChecker();
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: publicSitemap, robotsText })).toEqual(
+      expect.arrayContaining(["robots.txt sitemap does not match the canonical origin"]),
+    );
+  });
+
+  it("accepts robots directives with CRLF, case, and surrounding whitespace", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: publicSiteUrl,
+        sitemapXml: `${publicSitemap}<!-- notlocalhost.example -->`,
+        robotsText: `  sItEmAp :   ${publicSiteUrl}/sitemap.xml   \r\n`,
+      }),
+    ).toEqual([]);
+  });
+
+  it("requires HTTPS for public origins but permits localhost development audits", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const localSiteUrl = "http://localhost:3000";
+    const localSitemap = `<urlset><url><loc>${localSiteUrl}/</loc></url><url><loc>${localSiteUrl}/guide/</loc></url><url><loc>${localSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: "http://example.com",
+        sitemapXml: publicSitemap,
+        robotsText: publicRobots,
+      }),
+    ).toEqual(expect.arrayContaining(["public discovery origin must use https"]));
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: localSiteUrl,
+        sitemapXml: localSitemap,
+        robotsText: `Sitemap: ${localSiteUrl}/sitemap.xml`,
+      }),
+    ).toEqual([]);
   });
 });
 

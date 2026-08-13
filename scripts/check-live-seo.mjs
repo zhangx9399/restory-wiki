@@ -342,24 +342,76 @@ export function auditHtml({
   return { valid: errors.length === 0, errors };
 }
 
-export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText }) {
-  const origin = new URL(siteUrl).origin;
+export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
+  let site;
+  try {
+    site = new URL(siteUrl);
+  } catch {
+    return ["discovery site URL is invalid"];
+  }
+  if (!['http:', 'https:'].includes(site.protocol) || !site.hostname) {
+    return ["discovery site URL is invalid"];
+  }
+
+  const origin = site.origin;
   const routes = ["/", "/guide/", "/guide/how-to-clean/"];
   const errors = [];
+  const sitemap = typeof sitemapXml === "string" ? sitemapXml : "";
+  const robots = typeof robotsText === "string" ? robotsText : "";
+  const expectedUrls = routes.map((route) => new URL(route, `${origin}/`).toString());
+  const $ = cheerio.load(sitemap, { xmlMode: true });
+  const locUrls = $("urlset > url > loc")
+    .toArray()
+    .map((loc) => $(loc).text().trim());
 
-  if (new URL(origin).protocol === "https:" && /localhost(?::\d+)?/i.test(sitemapXml)) {
+  const isLocalAudit = site.protocol === "http:" && site.hostname.toLowerCase() === "localhost";
+  if (!isLocalAudit && site.protocol !== "https:") {
+    errors.push("public discovery origin must use https");
+  }
+
+  const parsedLocUrls = locUrls.map((url) => {
+    try {
+      return new URL(url);
+    } catch {
+      return undefined;
+    }
+  });
+  if (
+    site.protocol === "https:" &&
+    parsedLocUrls.some((url) => url?.hostname.toLowerCase() === "localhost")
+  ) {
     errors.push("sitemap.xml must not contain localhost on a public deployment");
   }
 
-  for (const route of routes) {
-    const expected = new URL(route, `${origin}/`).toString();
-    if (!sitemapXml.includes(`<loc>${expected}</loc>`)) {
+  for (let index = 0; index < routes.length; index += 1) {
+    if (locUrls.filter((url) => url === expectedUrls[index]).length === 0) {
+      const route = routes[index];
       errors.push(`sitemap.xml is missing ${route}`);
     }
   }
 
+  const hasUnexpectedOrDuplicateUrls = locUrls.some((url, index) => {
+    const parsed = parsedLocUrls[index];
+    const isExpected = expectedUrls.includes(url);
+    const isPublicSameOrigin =
+      site.protocol !== "https:" ||
+      (parsed?.protocol === "https:" && parsed.origin === origin);
+    return !isExpected || !isPublicSameOrigin || locUrls.indexOf(url) !== index;
+  });
+  if (hasUnexpectedOrDuplicateUrls) {
+    errors.push("sitemap.xml contains unexpected or duplicate URLs");
+  }
+
   const sitemapUrl = new URL("/sitemap.xml", `${origin}/`).toString();
-  if (!robotsText.includes(`Sitemap: ${sitemapUrl}`)) {
+  const robotSitemaps = robots
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .flatMap((line) => {
+      const match = /^sitemap\s*:\s*(\S+)\s*$/i.exec(line);
+      return match ? [match[1]] : [];
+    });
+  if (robotSitemaps.length !== 1 || robotSitemaps[0] !== sitemapUrl) {
     errors.push("robots.txt sitemap does not match the canonical origin");
   }
 
