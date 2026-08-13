@@ -13,7 +13,7 @@ export function normalizeSiteOrigin(value: string): string {
     throw new Error("SITE_URL must use http or https");
   }
 
-  if (url.pathname !== "/" || url.search || url.hash) {
+  if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
     throw new Error("SITE_URL must be an origin without a path, query, or hash");
   }
 
@@ -33,16 +33,20 @@ function normalizeVercelDomain(value: string): string {
 export function getSiteOrigin(
   environment: SiteEnvironment = process.env,
 ): string {
-  if (environment.SITE_URL) {
-    return normalizeSiteOrigin(environment.SITE_URL);
+  const siteUrl = environment.SITE_URL?.trim();
+  const productionUrl = environment.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  const vercelUrl = environment.VERCEL_URL?.trim();
+
+  if (siteUrl) {
+    return normalizeSiteOrigin(siteUrl);
   }
 
-  if (environment.VERCEL_PROJECT_PRODUCTION_URL) {
-    return normalizeVercelDomain(environment.VERCEL_PROJECT_PRODUCTION_URL);
+  if (productionUrl) {
+    return normalizeVercelDomain(productionUrl);
   }
 
-  if (environment.VERCEL_URL) {
-    return normalizeVercelDomain(environment.VERCEL_URL);
+  if (vercelUrl) {
+    return normalizeVercelDomain(vercelUrl);
   }
 
   return "http://localhost:3000";
