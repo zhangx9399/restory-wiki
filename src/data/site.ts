@@ -1,6 +1,8 @@
+import { getSiteOrigin } from "@/lib/site-url";
+
 export const siteConfig = {
   name: "ReStory Wiki",
-  origin: "http://localhost:3000",
+  origin: getSiteOrigin(),
   steamUrl:
     "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/",
   discordUrl: "https://discord.gg/restory",
