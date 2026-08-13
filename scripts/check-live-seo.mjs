@@ -342,6 +342,93 @@ export function auditHtml({
   return { valid: errors.length === 0, errors };
 }
 
+function isWellFormedXml(xml) {
+  const stack = [];
+  let rootCount = 0;
+  let index = 0;
+
+  while (index < xml.length) {
+    const nextTag = xml.indexOf("<", index);
+    if (nextTag === -1) {
+      return stack.length === 0 && rootCount === 1 && !xml.slice(index).trim();
+    }
+    if (nextTag > index && stack.length === 0 && xml.slice(index, nextTag).trim()) {
+      return false;
+    }
+    index = nextTag;
+
+    if (xml.startsWith("<!--", index)) {
+      const end = xml.indexOf("-->", index + 4);
+      if (end === -1) return false;
+      index = end + 3;
+      continue;
+    }
+    if (xml.startsWith("<![CDATA[", index)) {
+      const end = xml.indexOf("]]>", index + 9);
+      if (end === -1 || stack.length === 0) return false;
+      index = end + 3;
+      continue;
+    }
+    if (/^<!DOCTYPE\b/i.test(xml.slice(index))) return false;
+    if (xml.startsWith("<?", index)) {
+      const end = xml.indexOf("?>", index + 2);
+      if (end === -1) return false;
+      index = end + 2;
+      continue;
+    }
+
+    let quote;
+    let end = -1;
+    for (let cursor = index + 1; cursor < xml.length; cursor += 1) {
+      const character = xml[cursor];
+      if (quote) {
+        if (character === quote) quote = undefined;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        end = cursor;
+        break;
+      }
+    }
+    if (end === -1) return false;
+    const tag = xml.slice(index, end + 1);
+    const closing = /^<\/([A-Za-z_][\w:.-]*)\s*>$/.exec(tag);
+    if (closing) {
+      if (stack.pop() !== closing[1]) return false;
+      index = end + 1;
+      continue;
+    }
+
+    const opening = /^<([A-Za-z_][\w:.-]*)([\s\S]*?)>$/.exec(tag);
+    if (!opening) return false;
+    const selfClosing = /\/\s*$/.test(opening[2]);
+    const attributes = opening[2].replace(/\/\s*$/, "");
+    let attributeIndex = 0;
+    const attributePattern = /\s+([A-Za-z_][\w:.-]*)\s*=\s*("[^"]*"|'[^']*')/y;
+    while (attributeIndex < attributes.length && attributes.slice(attributeIndex).trim()) {
+      attributePattern.lastIndex = attributeIndex;
+      const attribute = attributePattern.exec(attributes);
+      if (!attribute) return false;
+      attributeIndex = attributePattern.lastIndex;
+    }
+
+    if (stack.length === 0 && rootCount++ > 0) return false;
+    if (!selfClosing) stack.push(opening[1]);
+    index = end + 1;
+  }
+
+  return stack.length === 0 && rootCount === 1;
+}
+
+function normalizedHostname(hostname) {
+  return hostname.toLowerCase().replace(/\.+$/, "");
+}
+
+function isLocalHostname(hostname) {
+  const normalized = normalizedHostname(hostname);
+  return normalized === "localhost" || normalized.endsWith(".localhost");
+}
+
 export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
   let site;
   try {
@@ -364,7 +451,11 @@ export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
     .toArray()
     .map((loc) => $(loc).text().trim());
 
-  const isLocalAudit = site.protocol === "http:" && site.hostname.toLowerCase() === "localhost";
+  if (!isWellFormedXml(sitemap)) {
+    errors.push("sitemap.xml is not well-formed XML");
+  }
+
+  const isLocalAudit = site.protocol === "http:" && isLocalHostname(site.hostname);
   if (!isLocalAudit && site.protocol !== "https:") {
     errors.push("public discovery origin must use https");
   }
@@ -378,7 +469,7 @@ export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
   });
   if (
     site.protocol === "https:" &&
-    parsedLocUrls.some((url) => url?.hostname.toLowerCase() === "localhost")
+    parsedLocUrls.some((url) => url && isLocalHostname(url.hostname))
   ) {
     errors.push("sitemap.xml must not contain localhost on a public deployment");
   }

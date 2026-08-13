@@ -182,6 +182,25 @@ describe("public discovery-file audit", () => {
   });
 
   it.each([
+    ["an unclosed loc", publicSitemap.replace("</loc>", "")],
+    ["an unclosed urlset", publicSitemap.replace("</urlset>", "")],
+    ["multiple roots", `${publicSitemap}<urlset/>`],
+  ])("rejects sitemap XML with %s", async (_case, sitemapXml) => {
+    const { auditDiscoveryFiles } = await loadChecker();
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual(
+      expect.arrayContaining(["sitemap.xml is not well-formed XML"]),
+    );
+  });
+
+  it("accepts well-formed XML declarations, comments, CDATA, namespaces, and quoted attributes", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const sitemapXml = `<?xml version="1.0"?><urlset xmlns:x="urn:example"><!-- public routes --><x:meta data="a > b" /><![CDATA[metadata]]><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual([]);
+  });
+
+  it.each([
     ["a commented directive", `# Sitemap: ${publicSiteUrl}/sitemap.xml`],
     ["a prefixed directive", `NotSitemap: ${publicSiteUrl}/sitemap.xml`],
     ["a suffixed URL", `Sitemap: ${publicSiteUrl}/sitemap.xml.evil`],
@@ -223,6 +242,37 @@ describe("public discovery-file audit", () => {
         siteUrl: localSiteUrl,
         sitemapXml: localSitemap,
         robotsText: `Sitemap: ${localSiteUrl}/sitemap.xml`,
+      }),
+    ).toEqual([]);
+  });
+
+  it("recognizes localhost namespaces and trailing dots without matching lookalikes", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const localhostSitemap = (host) => `<urlset><url><loc>https://${host}/</loc></url></urlset>`;
+
+    for (const host of ["localhost.", "dev.localhost"]) {
+      expect(
+        auditDiscoveryFiles({
+          siteUrl: publicSiteUrl,
+          sitemapXml: localhostSitemap(host),
+          robotsText: publicRobots,
+        }),
+      ).toEqual(
+        expect.arrayContaining(["sitemap.xml must not contain localhost on a public deployment"]),
+      );
+    }
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: "http://dev.localhost:3000",
+        sitemapXml: `<urlset><url><loc>http://dev.localhost:3000/</loc></url><url><loc>http://dev.localhost:3000/guide/</loc></url><url><loc>http://dev.localhost:3000/guide/how-to-clean/</loc></url></urlset>`,
+        robotsText: "Sitemap: http://dev.localhost:3000/sitemap.xml",
+      }),
+    ).toEqual([]);
+    expect(
+      auditDiscoveryFiles({
+        siteUrl: publicSiteUrl,
+        sitemapXml: `${publicSitemap}<!-- notlocalhost.example -->`,
+        robotsText: publicRobots,
       }),
     ).toEqual([]);
   });
