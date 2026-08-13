@@ -121,7 +121,8 @@ async function loadChecker() {
 
 describe("public discovery-file audit", () => {
   const publicSiteUrl = "https://restory-wiki.vercel.app";
-  const publicSitemap = `<?xml version="1.0"?><urlset><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+  const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
+  const publicSitemap = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}"><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
   const publicRobots = `User-agent: *\nSitemap: ${publicSiteUrl}/sitemap.xml`;
 
   it("accepts canonical public sitemap and robots files", async () => {
@@ -143,7 +144,7 @@ describe("public discovery-file audit", () => {
 
     const errors = auditDiscoveryFiles({
       siteUrl: "https://restory-wiki.vercel.app",
-      sitemapXml: "<urlset><url><loc>http://localhost:3000/</loc></url></urlset>",
+      sitemapXml: `<urlset xmlns="${sitemapNamespace}"><url><loc>http://localhost:3000/</loc></url></urlset>`,
       robotsText: "User-agent: *\nSitemap: https://wrong.example/sitemap.xml",
     });
 
@@ -195,9 +196,40 @@ describe("public discovery-file audit", () => {
 
   it("accepts well-formed XML declarations, comments, CDATA, namespaces, and quoted attributes", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
-    const sitemapXml = `<?xml version="1.0"?><urlset xmlns:x="urn:example"><!-- public routes --><x:meta data="a > b" /><![CDATA[metadata]]><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+    const sitemapXml = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:example"><!-- public routes --><x:meta data="a > b" /><![CDATA[metadata]]><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
 
     expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual([]);
+  });
+
+  it.each([
+    ["a bare ampersand", publicSitemap.replace(`${publicSiteUrl}/`, `${publicSiteUrl}/?a=1&b=2`)],
+    ["an unclosed entity", publicSitemap.replace(`${publicSiteUrl}/`, `${publicSiteUrl}/?a=&broken`)],
+    ["a duplicate attribute", publicSitemap.replace("<urlset", '<urlset version="1" version="2"')],
+    ["a comment containing double hyphens", publicSitemap.replace("<urlset", "<!-- bad--comment --><urlset")],
+    ["character data containing ]]>", publicSitemap.replace("<urlset", "<urlset>bad]]>text<urlset")],
+    ["an XML declaration inside the root", publicSitemap.replace("<urlset", '<?xml version="1.0"?><urlset')],
+    ["an XML declaration after the root", `${publicSitemap}<?xml version="1.0"?>`],
+    ["a bare less-than sign in an attribute", publicSitemap.replace("<urlset", '<urlset data="a < b"')],
+    ["a wrapper root", `<wrapper>${publicSitemap.replace('<?xml version="1.0"?>', "")}</wrapper>`],
+    ["a sitemapindex root", '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>'],
+  ])("rejects strict SAX invalid sitemap with %s", async (_case, sitemapXml) => {
+    const { auditDiscoveryFiles } = await loadChecker();
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual(
+      expect.arrayContaining(["sitemap.xml is not well-formed XML"]),
+    );
+  });
+
+  it("accepts default and prefixed sitemap namespaces", async () => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const namespace = sitemapNamespace;
+    const sitemap = (prefix = "") => {
+      const name = (local) => (prefix ? `${prefix}:${local}` : local);
+      return `<${name("urlset")} xmlns${prefix ? `:${prefix}` : ""}="${namespace}"><${name("url")}><${name("loc")}>${publicSiteUrl}/</${name("loc")}></${name("url")}><${name("url")}><${name("loc")}>${publicSiteUrl}/guide/</${name("loc")}></${name("url")}><${name("url")}><${name("loc")}>${publicSiteUrl}/guide/how-to-clean/</${name("loc")}></${name("url")}></${name("urlset")}>`;
+    };
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: sitemap(), robotsText: publicRobots })).toEqual([]);
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: sitemap("sm"), robotsText: publicRobots })).toEqual([]);
   });
 
   it.each([
@@ -228,7 +260,7 @@ describe("public discovery-file audit", () => {
   it("requires HTTPS for public origins but permits localhost development audits", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
     const localSiteUrl = "http://localhost:3000";
-    const localSitemap = `<urlset><url><loc>${localSiteUrl}/</loc></url><url><loc>${localSiteUrl}/guide/</loc></url><url><loc>${localSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+    const localSitemap = `<urlset xmlns="${sitemapNamespace}"><url><loc>${localSiteUrl}/</loc></url><url><loc>${localSiteUrl}/guide/</loc></url><url><loc>${localSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
 
     expect(
       auditDiscoveryFiles({
@@ -248,7 +280,7 @@ describe("public discovery-file audit", () => {
 
   it("recognizes localhost namespaces and trailing dots without matching lookalikes", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
-    const localhostSitemap = (host) => `<urlset><url><loc>https://${host}/</loc></url></urlset>`;
+    const localhostSitemap = (host) => `<urlset xmlns="${sitemapNamespace}"><url><loc>https://${host}/</loc></url></urlset>`;
 
     for (const host of ["localhost.", "dev.localhost"]) {
       expect(
@@ -264,7 +296,7 @@ describe("public discovery-file audit", () => {
     expect(
       auditDiscoveryFiles({
         siteUrl: "http://dev.localhost:3000",
-        sitemapXml: `<urlset><url><loc>http://dev.localhost:3000/</loc></url><url><loc>http://dev.localhost:3000/guide/</loc></url><url><loc>http://dev.localhost:3000/guide/how-to-clean/</loc></url></urlset>`,
+        sitemapXml: `<urlset xmlns="${sitemapNamespace}"><url><loc>http://dev.localhost:3000/</loc></url><url><loc>http://dev.localhost:3000/guide/</loc></url><url><loc>http://dev.localhost:3000/guide/how-to-clean/</loc></url></urlset>`,
         robotsText: "Sitemap: http://dev.localhost:3000/sitemap.xml",
       }),
     ).toEqual([]);

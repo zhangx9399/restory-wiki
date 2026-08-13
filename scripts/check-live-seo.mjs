@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import * as cheerio from "cheerio";
+import { SaxesParser } from "saxes";
 
 export const PAGE_EXPECTATIONS = [
   {
@@ -342,82 +343,53 @@ export function auditHtml({
   return { valid: errors.length === 0, errors };
 }
 
-function isWellFormedXml(xml) {
-  const stack = [];
-  let rootCount = 0;
-  let index = 0;
+const SITEMAP_NAMESPACE = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
-  while (index < xml.length) {
-    const nextTag = xml.indexOf("<", index);
-    if (nextTag === -1) {
-      return stack.length === 0 && rootCount === 1 && !xml.slice(index).trim();
-    }
-    if (nextTag > index && stack.length === 0 && xml.slice(index, nextTag).trim()) {
-      return false;
-    }
-    index = nextTag;
+function parseSitemapXml(xml) {
+  const parser = new SaxesParser({ xmlns: true });
+  const elements = [];
+  const locUrls = [];
+  let invalid = false;
+  let sawRoot = false;
 
-    if (xml.startsWith("<!--", index)) {
-      const end = xml.indexOf("-->", index + 4);
-      if (end === -1) return false;
-      index = end + 3;
-      continue;
-    }
-    if (xml.startsWith("<![CDATA[", index)) {
-      const end = xml.indexOf("]]>", index + 9);
-      if (end === -1 || stack.length === 0) return false;
-      index = end + 3;
-      continue;
-    }
-    if (/^<!DOCTYPE\b/i.test(xml.slice(index))) return false;
-    if (xml.startsWith("<?", index)) {
-      const end = xml.indexOf("?>", index + 2);
-      if (end === -1) return false;
-      index = end + 2;
-      continue;
-    }
-
-    let quote;
-    let end = -1;
-    for (let cursor = index + 1; cursor < xml.length; cursor += 1) {
-      const character = xml[cursor];
-      if (quote) {
-        if (character === quote) quote = undefined;
-      } else if (character === '"' || character === "'") {
-        quote = character;
-      } else if (character === ">") {
-        end = cursor;
-        break;
+  parser.on("error", () => {
+    invalid = true;
+  });
+  parser.on("doctype", () => {
+    invalid = true;
+  });
+  parser.on("opentag", (tag) => {
+    const parent = elements.at(-1);
+    const isRoot = elements.length === 0;
+    if (isRoot) {
+      if (sawRoot || tag.local !== "urlset" || tag.uri !== SITEMAP_NAMESPACE) {
+        invalid = true;
       }
+      sawRoot = true;
     }
-    if (end === -1) return false;
-    const tag = xml.slice(index, end + 1);
-    const closing = /^<\/([A-Za-z_][\w:.-]*)\s*>$/.exec(tag);
-    if (closing) {
-      if (stack.pop() !== closing[1]) return false;
-      index = end + 1;
-      continue;
-    }
+    const isDirectUrl =
+      parent?.isRoot && tag.local === "url" && tag.uri === SITEMAP_NAMESPACE;
+    const isDirectLoc =
+      parent?.isDirectUrl && tag.local === "loc" && tag.uri === SITEMAP_NAMESPACE;
+    elements.push({ isRoot, isDirectUrl, isDirectLoc, text: "" });
+  });
+  const appendText = (text) => {
+    const current = elements.at(-1);
+    if (current?.isDirectLoc) current.text += text;
+  };
+  parser.on("text", appendText);
+  parser.on("cdata", appendText);
+  parser.on("closetag", () => {
+    const element = elements.pop();
+    if (element?.isDirectLoc) locUrls.push(element.text.trim());
+  });
 
-    const opening = /^<([A-Za-z_][\w:.-]*)([\s\S]*?)>$/.exec(tag);
-    if (!opening) return false;
-    const selfClosing = /\/\s*$/.test(opening[2]);
-    const attributes = opening[2].replace(/\/\s*$/, "");
-    let attributeIndex = 0;
-    const attributePattern = /\s+([A-Za-z_][\w:.-]*)\s*=\s*("[^"]*"|'[^']*')/y;
-    while (attributeIndex < attributes.length && attributes.slice(attributeIndex).trim()) {
-      attributePattern.lastIndex = attributeIndex;
-      const attribute = attributePattern.exec(attributes);
-      if (!attribute) return false;
-      attributeIndex = attributePattern.lastIndex;
-    }
-
-    if (stack.length === 0 && rootCount++ > 0) return false;
-    if (!selfClosing) stack.push(opening[1]);
-    index = end + 1;
+  try {
+    parser.write(xml).close();
+  } catch {
+    invalid = true;
   }
-
-  return stack.length === 0 && rootCount === 1;
+  return { valid: !invalid && sawRoot, locUrls: invalid ? [] : locUrls };
 }
 
 function normalizedHostname(hostname) {
@@ -446,12 +418,9 @@ export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
   const sitemap = typeof sitemapXml === "string" ? sitemapXml : "";
   const robots = typeof robotsText === "string" ? robotsText : "";
   const expectedUrls = routes.map((route) => new URL(route, `${origin}/`).toString());
-  const $ = cheerio.load(sitemap, { xmlMode: true });
-  const locUrls = $("urlset > url > loc")
-    .toArray()
-    .map((loc) => $(loc).text().trim());
+  const { valid: validSitemapXml, locUrls } = parseSitemapXml(sitemap);
 
-  if (!isWellFormedXml(sitemap)) {
+  if (!validSitemapXml) {
     errors.push("sitemap.xml is not well-formed XML");
   }
 
