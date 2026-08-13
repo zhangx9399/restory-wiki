@@ -122,7 +122,7 @@ async function loadChecker() {
 describe("public discovery-file audit", () => {
   const publicSiteUrl = "https://restory-wiki.vercel.app";
   const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
-  const publicSitemap = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}"><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+  const publicSitemap = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:ignored"><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
   const publicRobots = `User-agent: *\nSitemap: ${publicSiteUrl}/sitemap.xml`;
 
   it("accepts canonical public sitemap and robots files", async () => {
@@ -230,6 +230,21 @@ describe("public discovery-file audit", () => {
 
     expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: sitemap(), robotsText: publicRobots })).toEqual([]);
     expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: sitemap("sm"), robotsText: publicRobots })).toEqual([]);
+  });
+
+  it.each([
+    ["a child element with text", `<x:ignored>evil</x:ignored>`],
+    ["a self-closing child element", "<x:ignored/>"],
+  ])("rejects a loc containing %s", async (_case, child) => {
+    const { auditDiscoveryFiles } = await loadChecker();
+    const sitemapXml = publicSitemap.replace(
+      `${publicSiteUrl}/</loc>`,
+      `${publicSiteUrl}/${child}</loc>`,
+    );
+
+    expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual(
+      expect.arrayContaining(["sitemap.xml is not well-formed XML"]),
+    );
   });
 
   it.each([

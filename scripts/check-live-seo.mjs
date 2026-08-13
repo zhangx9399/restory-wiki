@@ -360,6 +360,7 @@ function parseSitemapXml(xml) {
   });
   parser.on("opentag", (tag) => {
     const parent = elements.at(-1);
+    if (parent?.isDirectLoc) invalid = true;
     const isRoot = elements.length === 0;
     if (isRoot) {
       if (sawRoot || tag.local !== "urlset" || tag.uri !== SITEMAP_NAMESPACE) {
