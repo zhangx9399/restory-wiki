@@ -14,6 +14,7 @@ export const routes = {
   home: "/",
   guide: "/guide/",
   cleaning: "/guide/how-to-clean/",
+  demo: "/demo/",
   systemRequirements: "/system-requirements/",
 } as const;
 
@@ -38,6 +39,13 @@ export const pageSeo = {
     description:
       "Learn how cleaning works in ReStory, where to place dirty parts, how to clean the first Pokia device, and what to check when dirt will not disappear.",
     h1: "How to Clean Items in ReStory",
+  },
+  demo: {
+    path: routes.demo,
+    title: "ReStory Demo Guide — Download, Content & Full Game",
+    description:
+      "Learn where to download the ReStory demo, what it includes, how it differs from the full game, and what is known about demo save progress.",
+    h1: "ReStory Demo Guide",
   },
   systemRequirements: {
     path: routes.systemRequirements,
