@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { compile, run } from "@mdx-js/mdx";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import * as jsxRuntime from "react/jsx-runtime";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const featurePaths = [
@@ -220,6 +222,43 @@ describe.skipIf(!featureFilesExist)("system requirements real MDX contract", () 
     expect(tocHrefs).toHaveLength(7);
     expect(new Set(tocHrefs).size).toBe(7);
     expect(tocHrefs).toEqual(h2Slugs.map((slug) => `#${slug}`));
+  });
+
+  it("compiles the real MDX minimum requirements as an accessible table", async () => {
+    const mdx = readFileSync(mdxPath, "utf8")
+      .replace(/^import .+;$/gm, "")
+      .replace("<FaqList items={systemRequirementsFaqItems} />", "<div />");
+    const compiled = await compile(mdx, { outputFormat: "function-body" });
+    const { default: RealSystemRequirementsContent } = await run(compiled, {
+      ...jsxRuntime,
+      baseUrl: import.meta.url,
+    });
+    const { container } = render(<RealSystemRequirementsContent />);
+    const table = container.querySelector("table");
+
+    expect(table).toBeInTheDocument();
+    expect(table?.querySelector("thead")).toBeInTheDocument();
+    expect(
+      within(table as HTMLTableElement)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Component", "Official Windows minimum"]);
+    expect(
+      within(table as HTMLTableElement)
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => [
+          within(row).getByRole("rowheader").textContent,
+          within(row).getByRole("cell").textContent,
+        ]),
+    ).toEqual([
+      ["Operating system", "Windows 10 x64"],
+      ["Processor", "2 cores / 4 threads"],
+      ["Memory", "4 GB RAM"],
+      ["Graphics", "GTX 750 Ti"],
+      ["DirectX", "DirectX 11"],
+      ["Storage", "1 GB available space"],
+    ]);
   });
 
   it("contains every official Windows minimum and explicitly rejects an invented recommended tier", () => {
