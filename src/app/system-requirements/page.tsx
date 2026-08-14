@@ -78,9 +78,22 @@ export default function SystemRequirementsPage() {
         <article className="article">
           <SystemRequirementsContent />
 
-          <p>
-            <Link href={routes.home}>Back to home</Link>
-          </p>
+          <nav aria-label="Related guides">
+            <p>
+              <strong>Related guides</strong>
+            </p>
+            <ul>
+              <li>
+                <Link href="/demo/">Demo guide</Link>
+              </li>
+              <li>
+                <Link href={routes.guide}>All ReStory guides</Link>
+              </li>
+              <li>
+                <Link href={routes.cleaning}>Cleaning guide</Link>
+              </li>
+            </ul>
+          </nav>
         </article>
 
         <aside className="article-aside" aria-label="Table of contents">

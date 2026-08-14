@@ -41,6 +41,16 @@ vi.mock("@/content/system-requirements.mdx", () => ({
 
 afterEach(cleanup);
 
+function headingSlug(heading: string) {
+  return heading
+    .trim()
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 describe("system requirements feature files", () => {
   it("creates the route, content, and shared data files", () => {
     expect(featurePaths.filter((path) => !existsSync(join(process.cwd(), path)))).toEqual([]);
@@ -119,6 +129,23 @@ describe.skipIf(!featureFilesExist)("system requirements page metadata and shell
     ]);
   });
 
+  it("renders the three required related guide links", () => {
+    const { container } = render(<SystemRequirementsPage />);
+    const main = container.querySelector("main#main-content") as HTMLElement;
+    const related = within(main).getByRole("navigation", { name: "Related guides" });
+
+    expect(
+      within(related).getAllByRole("link").map((link) => ({
+        name: link.textContent,
+        href: link.getAttribute("href"),
+      })),
+    ).toEqual([
+      { name: "Demo guide", href: "/demo" },
+      { name: "All ReStory guides", href: "/guide" },
+      { name: "Cleaning guide", href: "/guide/how-to-clean" },
+    ]);
+  });
+
   it("injects Article, BreadcrumbList, and FAQPage schemas with the review date", () => {
     const { container } = render(<SystemRequirementsPage />);
     const schemas = Array.from(
@@ -175,6 +202,24 @@ describe.skipIf(!featureFilesExist)("system requirements real MDX contract", () 
       mdx.indexOf("## Official Minimum System Requirements"),
     );
     expect(mdx).toMatch(/\*\*Quick answer:\*\*/i);
+  });
+
+  it("keeps seven unique real-MDX H2 slugs synchronized with the TOC hrefs", () => {
+    const mdx = readFileSync(mdxPath, "utf8");
+    const page = readFileSync(pagePath, "utf8");
+    const h2Slugs = Array.from(mdx.matchAll(/^##\s+(.+)$/gm), (match) =>
+      headingSlug(match[1]),
+    );
+    const tocHrefs = Array.from(
+      page.matchAll(/\[\s*"[^"]+",\s*"(#[^"]+)"\s*\]/g),
+      (match) => match[1],
+    );
+
+    expect(h2Slugs).toHaveLength(7);
+    expect(new Set(h2Slugs).size).toBe(7);
+    expect(tocHrefs).toHaveLength(7);
+    expect(new Set(tocHrefs).size).toBe(7);
+    expect(tocHrefs).toEqual(h2Slugs.map((slug) => `#${slug}`));
   });
 
   it("contains every official Windows minimum and explicitly rejects an invented recommended tier", () => {
