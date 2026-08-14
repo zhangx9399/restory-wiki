@@ -23,8 +23,9 @@ const contentCases = [
 
 const riskyClaim =
   /officially recommended specifications|save progress (?:will|does) carry over|press the [A-Z0-9]+ button|unlocks? at level \d+|universal scoring formula/i;
-const paintingOperationalClaim =
-  /\b(?:press|hold|tap|click)\s+(?:the\s+)?[A-Z0-9]+\b[^.!?\n]*(?:to\s+)?paint|\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i;
+const paintingControlClaim =
+  /\b(?:press|hold|tap|click)\s+(?:the\s+)?[A-Z0-9]+\b[^.!?;,\n]*(?:to\s+)?paint/i;
+const paintingUnlockClaim = /\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i;
 const paintingScoringClaim = /\bscoring (?:formula|rule|algorithm)\b/i;
 const paintingEvidenceLimit =
   /\b(?:not officially confirmed|unconfirmed|not documented|does not establish|cannot confirm|no reliable source (?:confirms|documents|establishes|supports))\b/i;
@@ -53,16 +54,21 @@ function sentences(source: string) {
   return source.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [];
 }
 
-function paintingRisk(sentence: string): PaintingRisk | undefined {
-  if (/\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i.test(sentence)) {
-    return "unlock";
-  }
-  if (paintingOperationalClaim.test(sentence)) {
-    return "control";
-  }
-  if (paintingScoringClaim.test(sentence)) {
-    return "scoring";
-  }
+function clauses(source: string) {
+  return sentences(source).flatMap((sentence) =>
+    sentence
+      .split(/\s*;\s*|\s*,\s*(?:but|while)\s+/i)
+      .map((clause) => clause.trim())
+      .filter(Boolean),
+  );
+}
+
+function paintingRisks(clause: string): PaintingRisk[] {
+  return [
+    ...(paintingUnlockClaim.test(clause) ? (["unlock"] as const) : []),
+    ...(paintingControlClaim.test(clause) ? (["control"] as const) : []),
+    ...(paintingScoringClaim.test(clause) ? (["scoring"] as const) : []),
+  ];
 }
 
 function hasSpecificRiskReference(sentence: string, risk: PaintingRisk) {
@@ -88,7 +94,7 @@ function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
     return (
       hasSpecificRiskReference(sentence, risk) ||
       new RegExp(
-        `(?:${paintingOperationalClaim.source})\\s+${directLimit.source}`,
+        `(?:${paintingControlClaim.source})\\s+${directLimit.source}`,
         "i",
       ).test(sentence)
     );
@@ -97,7 +103,7 @@ function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
     return (
       hasSpecificRiskReference(sentence, risk) ||
       new RegExp(
-        `\\bpainting\\s+unlocks?\\s+at\\s+level\\s+\\d+\\s+${directLimit.source}`,
+        `${paintingUnlockClaim.source}\\s+${directLimit.source}`,
         "i",
       ).test(sentence)
     );
@@ -116,20 +122,21 @@ function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
 
 function paintingRiskViolations(source: string) {
   return paragraphs(source).flatMap((paragraph) => {
-    const paragraphSentences = sentences(paragraph);
+    const paragraphClauses = clauses(paragraph);
 
-    return paragraphSentences.filter((sentence, index) => {
-      const risk = paintingRisk(sentence);
-      if (!risk || hasOwnRiskLimit(sentence, risk)) {
-        return false;
-      }
+    return paragraphClauses.flatMap((claim, index) => {
+      const nextClause = paragraphClauses[index + 1];
 
-      const nextSentence = paragraphSentences[index + 1];
-      return !(
-        nextSentence &&
-        paintingEvidenceLimit.test(nextSentence) &&
-        hasSpecificRiskReference(nextSentence, risk)
-      );
+      return paintingRisks(claim).flatMap((risk) => {
+        const hasAdjacentLimit =
+          nextClause &&
+          paintingEvidenceLimit.test(nextClause) &&
+          hasSpecificRiskReference(nextClause, risk);
+
+        return hasOwnRiskLimit(claim, risk) || hasAdjacentLimit
+          ? []
+          : [{ risk, claim }];
+      });
     });
   });
 }
@@ -237,7 +244,10 @@ describe("painting affirmative claim guard", () => {
       paintingRiskViolations(
         "Press R to paint.\n\nControls elsewhere are unconfirmed.\n\nPainting unlocks at level 4.",
       ),
-    ).toEqual(["Press R to paint.", "Painting unlocks at level 4."]);
+    ).toEqual([
+      { risk: "control", claim: "Press R to paint." },
+      { risk: "unlock", claim: "Painting unlocks at level 4." },
+    ]);
     expect(
       paintingRiskViolations(
         "Press R to paint, but this control is not officially confirmed.\n\nPainting unlocks at level 4 is unconfirmed.",
@@ -260,9 +270,15 @@ describe("painting affirmative claim guard", () => {
         "The scoring formula is fixed.\n\nA global scoring rule applies everywhere.\n\nThe scoring algorithm is deterministic.",
       ),
     ).toEqual([
-      "The scoring formula is fixed.",
-      "A global scoring rule applies everywhere.",
-      "The scoring algorithm is deterministic.",
+      { risk: "scoring", claim: "The scoring formula is fixed." },
+      {
+        risk: "scoring",
+        claim: "A global scoring rule applies everywhere.",
+      },
+      {
+        risk: "scoring",
+        claim: "The scoring algorithm is deterministic.",
+      },
     ]);
     expect(
       paintingRiskViolations(
@@ -276,26 +292,42 @@ describe("painting affirmative claim guard", () => {
       paintingRiskViolations(
         "Press R to paint. The undo method is unconfirmed.",
       ),
-    ).toEqual(["Press R to paint."]);
+    ).toEqual([{ risk: "control", claim: "Press R to paint." }]);
     expect(
       paintingRiskViolations(
         "Painting unlocks at level 4, while the undo method is unconfirmed.",
       ),
-    ).toEqual([
-      "Painting unlocks at level 4, while the undo method is unconfirmed.",
-    ]);
+    ).toEqual([{ risk: "unlock", claim: "Painting unlocks at level 4" }]);
     expect(
       paintingRiskViolations(
         "The scoring formula is fixed, while the undo method is unconfirmed.",
       ),
-    ).toEqual([
-      "The scoring formula is fixed, while the undo method is unconfirmed.",
-    ]);
+    ).toEqual([{ risk: "scoring", claim: "The scoring formula is fixed" }]);
     expect(
       paintingRiskViolations(
         "Press R to paint. This control is not officially confirmed.",
       ),
     ).toEqual([]);
+  });
+
+  it("binds each limitation to the specific risky clause it qualifies", () => {
+    expect(
+      paintingRiskViolations(
+        "Press R to paint; this control is documented, while the undo method is unconfirmed.",
+      ),
+    ).toEqual([{ risk: "control", claim: "Press R to paint" }]);
+    expect(
+      paintingRiskViolations(
+        "Press R to paint; this control is unconfirmed, but the scoring formula is fixed.",
+      ),
+    ).toEqual([
+      { risk: "scoring", claim: "the scoring formula is fixed." },
+    ]);
+    expect(
+      paintingRiskViolations(
+        "Painting unlocks at level 4 is unconfirmed, but press R to paint.",
+      ),
+    ).toEqual([{ risk: "control", claim: "press R to paint." }]);
   });
 });
 
