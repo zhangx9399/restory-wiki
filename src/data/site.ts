@@ -15,6 +15,7 @@ export const routes = {
   guide: "/guide/",
   cleaning: "/guide/how-to-clean/",
   demo: "/demo/",
+  customizeDisplay: "/guide/customize-display/",
   systemRequirements: "/system-requirements/",
 } as const;
 
@@ -46,6 +47,13 @@ export const pageSeo = {
     description:
       "Learn where to download the ReStory demo, what it includes, how it differs from the full game, and what is known about demo save progress.",
     h1: "ReStory Demo Guide",
+  },
+  customizeDisplay: {
+    path: routes.customizeDisplay,
+    title: "How to Customize Your Shop in ReStory",
+    description:
+      "Understand ReStory shop customization, including walls, shelf styles, storage, decorations, and how shop changes differ from gadget painting.",
+    h1: "How to Customize Your Shop in ReStory",
   },
   systemRequirements: {
     path: routes.systemRequirements,
