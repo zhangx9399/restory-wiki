@@ -1,0 +1,73 @@
+import { FaqList } from "@/components/faq-list";
+import { systemRequirementsFaqItems } from "@/data/system-requirements";
+
+<div className="quick-answer">
+
+**Quick answer:** ReStory's official Windows minimum is a 64-bit Windows 10 PC with a 2-core, 4-thread processor, 4 GB of memory, a GTX 750 Ti, DirectX 11, and 1 GB of free storage. Meeting that list means your PC reaches the published entry point; it does not promise a particular resolution, graphics preset, or perfectly steady performance. Steam has not published an official recommended tier.
+
+</div>
+
+## Official Minimum System Requirements
+
+The Steam store is the primary source for the current Windows minimum. Its listing is short and does not attach a target resolution, quality preset, or performance level to the hardware. Read “minimum” as the developer-published floor for attempting to run the game, not as a benchmark result.
+
+| Component | Official Windows minimum |
+| --- | --- |
+| Operating system | Windows 10 x64 |
+| Processor | 2 cores / 4 threads |
+| Memory | 4 GB RAM |
+| Graphics | GTX 750 Ti |
+| DirectX | DirectX 11 |
+| Storage | 1 GB available space |
+
+These entries reproduce the official Steam fields in clearer wording. “Windows 10 x64” means the 64-bit edition. “2 cores / 4 threads” describes the CPU topology rather than naming a specific processor generation. The GTX 750 Ti is the only published Windows GPU reference, while the memory and storage figures describe system RAM and free disk space respectively.
+
+Do not silently convert this minimum list into a recommended build. A newer CPU or GPU may provide more headroom, but no unofficial comparison can become an official tier. Hardware age, driver condition, display resolution, background load, cooling, and game updates can all affect the experience even when the six listed fields are met.
+
+## Can Your PC Run ReStory?
+
+Start with the operating system and graphics API. Confirm that Windows reports a 64-bit installation, then check that the graphics adapter supports DirectX 11. In Windows, Settings and the DirectX Diagnostic Tool can identify the installed OS, processor, memory, and display adapter. Compare the actual adapter name rather than assuming that a laptop's product name identifies its GPU.
+
+Next, compare the processor and memory. A two-core processor with four threads reaches the published CPU wording, and 4 GB reaches the official memory floor. However, Windows and other running programs also consume memory. Close unnecessary applications before testing so the game is not competing with a browser full of tabs, recording software, or another memory-heavy task.
+
+For graphics, treat the GTX 750 Ti as a reference point, not a universal equation. GPU names across Nvidia, AMD, and Intel cannot be ranked reliably by model number alone. If you use integrated graphics or an unfamiliar mobile GPU, consult independent benchmarks for broad context, then test the game within Steam's applicable refund rules. Such comparisons remain estimates because the store gives no official equivalent-GPU list.
+
+Finally, verify free space on the drive where Steam will install the game. Keep more than the stated 1 GB available when practical because Steam and Windows can need temporary working space for downloads, updates, shader data, or system activity. That buffer is sensible PC maintenance, not a higher ReStory requirement.
+
+## Storage, DirectX, and Windows Support
+
+The official Windows entry specifically names Windows 10 x64. It does not list 32-bit Windows, Windows 7, or Windows 8 as supported minimum operating systems. It also does not state in the requirements table whether every later Windows version has been validated. Avoid translating absence into a claim of support or incompatibility; check current Steam notices if your operating system differs from the listed baseline.
+
+DirectX 11 is the published API requirement. This is not the same as saying that every GPU on a machine with DirectX installed is suitable. The adapter and its driver must provide the needed feature support. If the game fails to start, install current stable graphics drivers from the GPU or computer manufacturer, update Windows normally, restart, and retry before changing advanced driver settings.
+
+The 1 GB figure is available space, not a promise that every download, patch, or local file will always occupy exactly that amount. Leave a modest buffer and let Steam manage the installation. Moving or deleting game files manually can create a second problem; Steam's built-in file verification is a safer first check when installed data appears damaged.
+
+## VSync and Frame-Rate Troubleshooting
+
+**Older build/version note:** In official playtest patch #0.1.018, the developer added VSync and target frame-rate options and suggested turning VSync off when GPU performance remained poor. That instruction came from the December 2025 playtest build; it may not apply to or solve every current-release problem. Change the in-game option only if it is present, test the same scene, and restore it if performance or visual quality becomes worse.
+
+**Older build/version note:** The same official playtest patch #0.1.018 suggested trying a target of 30 FPS or 60 FPS for GPU performance trouble. That older-build advice may not apply to or solve every current-release problem. Choose one available cap, observe a repeatable scene, and compare consistency rather than treating the highest number as an automatic fix.
+
+**Older build/version note:** If you compare the old VSync or 30/60 FPS guidance, remember that it belongs to playtest #0.1.018 and may not apply to or solve all current issues. First update ReStory. Then change one variable at a time: reduce resolution or render load where the current menus allow it, close capture tools and GPU-heavy overlays, and check whether another application is using the GPU.
+
+A high utilization reading can support a GPU-bound hypothesis, but it is not a diagnosis by itself. Note utilization, temperature, clock behavior, resolution, and the scene where the slowdown occurs. Do not disable thermal protections or apply overclocks as routine troubleshooting. If the issue persists, report the game version, GPU, driver version, display resolution, and reproducible steps so the developer can distinguish a current bug from an older playtest symptom.
+
+## What Is Not Officially Confirmed
+
+Steam currently publishes no official recommended requirements for Windows. There is therefore no developer-confirmed recommended CPU, GPU, RAM amount, target resolution, target quality preset, or expected performance tier to reproduce. A table that supplied those values would look authoritative while actually being invented, so this page deliberately omits it.
+
+The minimum table also does not confirm Steam Deck verification, every integrated GPU, every Windows edition after Windows 10, ultrawide behavior, or a guaranteed performance target. These questions require separate, version-specific evidence. Player reports and hardware comparison sites can help form a test plan, but they do not modify the official requirements.
+
+PCGamingWiki is useful as a community-maintained, third-party reference for display and technical observations. Its fields can change as contributors test newer builds, and blank or checked entries should not be mistaken for developer promises. Where it conflicts with the Steam store about official requirements, the current official listing takes priority.
+
+## Frequently Asked Questions
+
+<FaqList items={systemRequirementsFaqItems} />
+
+## Sources and Evidence Notes
+
+- **Official primary source — [ReStory Steam store](https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/):** supplies the Windows minimum table used above. At the Aug 14 review it showed only a minimum tier, not official recommended specifications.
+- **Third-party reference — [PCGamingWiki](https://www.pcgamingwiki.com/wiki/ReStory%3A_Chill_Electronics_Repairs):** provides community-maintained technical observations. It is supporting context, not the authority for developer-published requirements.
+- **Official version history — [ReStory Steam News](https://steamcommunity.com/app/3812600/allnews/):** records patches and version-specific developer notices. **Older build/version note:** the VSync and 30 or 60 FPS suggestion cited here belongs to playtest patch #0.1.018 and may not apply to or solve every current-release problem.
+
+Last evidence review: Aug 14, 2026. Requirements and troubleshooting behavior can change after updates, so recheck the Steam store and official news before making a hardware purchase or treating old advice as current.

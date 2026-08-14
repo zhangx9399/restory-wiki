@@ -14,6 +14,7 @@ export const routes = {
   home: "/",
   guide: "/guide/",
   cleaning: "/guide/how-to-clean/",
+  systemRequirements: "/system-requirements/",
 } as const;
 
 export const pageSeo = {
@@ -37,5 +38,12 @@ export const pageSeo = {
     description:
       "Learn how cleaning works in ReStory, where to place dirty parts, how to clean the first Pokia device, and what to check when dirt will not disappear.",
     h1: "How to Clean Items in ReStory",
+  },
+  systemRequirements: {
+    path: routes.systemRequirements,
+    title: "ReStory System Requirements — Can Your PC Run It?",
+    description:
+      "Check ReStory's official minimum PC requirements, storage and DirectX needs, and version-labeled VSync and frame-rate troubleshooting advice.",
+    h1: "ReStory System Requirements",
   },
 } as const;
