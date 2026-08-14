@@ -28,7 +28,9 @@ const paintingControlClaim =
 const paintingUnlockClaim = /\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i;
 const paintingScoringClaim = /\bscoring (?:formula|rule|algorithm)\b/i;
 const paintingEvidenceLimit =
-  /\b(?:not officially confirmed|unconfirmed|not documented|does not establish|cannot confirm|no reliable source (?:confirms|documents|establishes|supports))\b/i;
+  /\b(?:not (?:officially )?confirmed|unconfirmed|not documented|does not establish|cannot confirm|no reliable source (?:confirms|documents|establishes|supports))\b/i;
+const directEvidenceState =
+  /\b(?:is|remains)\s+(?:also\s+)?(?:not (?:officially )?confirmed|unconfirmed|not documented)\b/i;
 
 function paragraphs(source: string) {
   return source
@@ -71,7 +73,7 @@ function paintingRisks(clause: string): PaintingRisk[] {
   ];
 }
 
-function hasSpecificRiskReference(sentence: string, risk: PaintingRisk) {
+function hasDirectReferencedLimit(clause: string, risk: PaintingRisk) {
   const references = {
     control:
       /\b(?:(?:this|that) (?:control|button|key|instruction|method)|the (?:painting )?(?:control|button|key|instruction))\b/i,
@@ -80,30 +82,30 @@ function hasSpecificRiskReference(sentence: string, risk: PaintingRisk) {
     scoring: /\b(?:this|that|the) (?:scoring )?(?:formula|rule|algorithm|claim)\b/i,
   } as const;
 
-  return references[risk].test(sentence);
+  return new RegExp(
+    `${references[risk].source}\\s+${directEvidenceState.source}`,
+    "i",
+  ).test(clause);
 }
 
 function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
   if (!paintingEvidenceLimit.test(sentence)) {
     return false;
   }
-  const directLimit =
-    /\b(?:is|remains)\s+(?:also\s+)?(?:not officially confirmed|unconfirmed|not documented)\b/i;
-
   if (risk === "control") {
     return (
-      hasSpecificRiskReference(sentence, risk) ||
+      hasDirectReferencedLimit(sentence, risk) ||
       new RegExp(
-        `(?:${paintingControlClaim.source})\\s+${directLimit.source}`,
+        `(?:${paintingControlClaim.source})\\s+${directEvidenceState.source}`,
         "i",
       ).test(sentence)
     );
   }
   if (risk === "unlock") {
     return (
-      hasSpecificRiskReference(sentence, risk) ||
+      hasDirectReferencedLimit(sentence, risk) ||
       new RegExp(
-        `${paintingUnlockClaim.source}\\s+${directLimit.source}`,
+        `${paintingUnlockClaim.source}\\s+${directEvidenceState.source}`,
         "i",
       ).test(sentence)
     );
@@ -111,7 +113,7 @@ function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
 
   return (
     new RegExp(
-      `${paintingScoringClaim.source}(?:\\s+that applies everywhere)?\\s+${directLimit.source}`,
+      `${paintingScoringClaim.source}(?:\\s+that applies everywhere)?\\s+${directEvidenceState.source}`,
       "i",
     ).test(sentence) ||
     /\b(?:no reliable source (?:confirms|documents|establishes|supports)|cannot confirm|does not establish)[^.!?]*\bscoring (?:formula|rule|algorithm)\b/i.test(
@@ -129,9 +131,7 @@ function paintingRiskViolations(source: string) {
 
       return paintingRisks(claim).flatMap((risk) => {
         const hasAdjacentLimit =
-          nextClause &&
-          paintingEvidenceLimit.test(nextClause) &&
-          hasSpecificRiskReference(nextClause, risk);
+          nextClause && hasDirectReferencedLimit(nextClause, risk);
 
         return hasOwnRiskLimit(claim, risk) || hasAdjacentLimit
           ? []
@@ -328,6 +328,16 @@ describe("painting affirmative claim guard", () => {
         "Painting unlocks at level 4 is unconfirmed, but press R to paint.",
       ),
     ).toEqual([{ risk: "control", claim: "press R to paint." }]);
+  });
+
+  it("requires the adjacent qualifier to directly describe its risk referent", () => {
+    for (const conjunction of ["but", "and"]) {
+      expect(
+        paintingRiskViolations(
+          `Press R to paint; this control is documented ${conjunction} the undo method is unconfirmed.`,
+        ),
+      ).toEqual([{ risk: "control", claim: "Press R to paint" }]);
+    }
   });
 });
 
