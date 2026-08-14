@@ -367,7 +367,10 @@ describe("painting MDX content contract", () => {
       ["undo", /\bundo(?: method)?\b/gi],
       ["coverage", /\b(?:paint )?coverage\b/gi],
       ["consumption", /\b(?:paint|color) consumption\b/gi],
-      ["scoring formula", /\b(?:universal )?scoring formula\b/gi],
+      [
+        "scoring rule",
+        /\b(?:one|single) scoring rule(?: that applies everywhere)?\b/gi,
+      ],
     ] as const;
 
     for (const [label, risk] of risks) {

@@ -23,8 +23,6 @@ const contentCases = [
 
 const riskyClaim =
   /officially recommended specifications|save progress (?:will|does) carry over|press the [A-Z0-9]+ button|unlocks? at level \d+|universal scoring formula/i;
-const evidenceLimit =
-  /\b(?:not|no|unconfirmed|unsupported|unknown|cannot|does not|do not|may not|player report|older build\/version note|visible gameplay corroboration)\b/i;
 const paintingOperationalClaim =
   /\b(?:press|hold|tap|click)\s+(?:the\s+)?[A-Z0-9]+\b[^.!?\n]*(?:to\s+)?paint|\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i;
 const paintingEvidenceLimit =
@@ -92,14 +90,8 @@ describe.each(contentCases)("$name content evidence contract", ({ file, evidence
     expect(links.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("qualifies risky claims in the same paragraph", () => {
-    const riskyParagraphs = paragraphs(source).filter((paragraph) =>
-      riskyClaim.test(paragraph),
-    );
-
-    for (const paragraph of riskyParagraphs) {
-      expect(paragraph, paragraph).toMatch(evidenceLimit);
-    }
+  it("absolutely rejects prohibited claim phrasing", () => {
+    expect(source).not.toMatch(riskyClaim);
   });
 
   it("uses its page-specific evidence label", () => {
