@@ -89,7 +89,8 @@ export default function CustomizeDisplayPage() {
           <CustomizeDisplayContent />
 
           <p>
-            Related: <Link href={routes.cleaning}>Cleaning guide</Link> ·{" "}
+            Related: <Link href="/guide/painting/">Painting guide</Link> ·{" "}
+            <Link href={routes.cleaning}>Cleaning guide</Link> ·{" "}
             <Link href={routes.guide}>Back to all guides</Link>
           </p>
         </article>

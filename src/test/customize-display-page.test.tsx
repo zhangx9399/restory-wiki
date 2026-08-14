@@ -147,7 +147,7 @@ describe("CustomizeDisplayPage", () => {
     );
   });
 
-  it("renders the exact table of contents and related guide links", () => {
+  it("renders the exact table of contents and Painting, Cleaning, and Guide links", () => {
     const { container } = render(<CustomizeDisplayPage />);
     const aside = container.querySelector("aside.article-aside") as HTMLElement;
     expect(within(aside).getByRole("heading", { level: 2 })).toHaveTextContent(
@@ -169,6 +169,10 @@ describe("CustomizeDisplayPage", () => {
     expect(screen.getByRole("link", { name: "Cleaning guide" })).toHaveAttribute(
       "href",
       "/guide/how-to-clean",
+    );
+    expect(screen.getByRole("link", { name: "Painting guide" })).toHaveAttribute(
+      "href",
+      "/guide/painting",
     );
     expect(screen.getByRole("link", { name: "Back to all guides" })).toHaveAttribute(
       "href",
