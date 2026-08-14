@@ -26,7 +26,43 @@ export const PAGE_EXPECTATIONS = [
       "Learn how cleaning works in ReStory, where to place dirty parts, how to clean the first Pokia device, and what to check when dirt will not disappear.",
     h1: "How to Clean Items in ReStory",
     requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
-    checkCleaningPage: true,
+    checkArticlePage: true,
+  },
+  {
+    route: "/demo/",
+    title: "ReStory Demo Guide — Download, Content & Full Game",
+    description:
+      "Learn where to download the ReStory demo, what it includes, how it differs from the full game, and what is known about demo save progress.",
+    h1: "ReStory Demo Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/customize-display/",
+    title: "How to Customize Your Shop in ReStory",
+    description:
+      "Understand ReStory shop customization, including walls, shelf styles, storage, decorations, and how shop changes differ from gadget painting.",
+    h1: "How to Customize Your Shop in ReStory",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/system-requirements/",
+    title: "ReStory System Requirements — Can Your PC Run It?",
+    description:
+      "Check ReStory's official minimum PC requirements, storage and DirectX needs, and version-labeled VSync and frame-rate troubleshooting advice.",
+    h1: "ReStory System Requirements",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/painting/",
+    title: "ReStory Painting Guide — Airbrush & Color Palettes",
+    description:
+      "Learn what the Airbrush and color palettes do in ReStory, how painting differs from shop customization, and which painting details remain unconfirmed.",
+    h1: "ReStory Painting Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
   },
 ];
 
@@ -158,12 +194,12 @@ function parseJsonLd($, errors) {
   return schemas;
 }
 
-function auditCleaningPage($, schemas, errors, expected, currentPageUrl) {
+function auditArticlePage($, schemas, errors, expected, currentPageUrl) {
   const tableOfContents = $('[aria-label="Table of contents"]');
   const tocLinks = tableOfContents.find("a[href]");
   if (tableOfContents.length !== 1 || tocLinks.length === 0) {
     errors.push(
-      error("toc-missing", "Cleaning page must have one non-empty table of contents."),
+      error("toc-missing", "Article page must have one non-empty table of contents."),
     );
   }
 
@@ -250,7 +286,7 @@ function auditCleaningPage($, schemas, errors, expected, currentPageUrl) {
       answer: normalizeText($(details).find("p").first().text()),
     }));
   if (visibleFaq.length === 0) {
-    errors.push(error("faq-visible", "Cleaning page must have visible FAQ entries."));
+    errors.push(error("faq-visible", "Article page must have visible FAQ entries."));
   }
   if (
     visibleFaq.some(
@@ -299,7 +335,7 @@ export function auditHtml({
   html,
   siteUrl,
   expected,
-  checkCleaningPage = false,
+  checkArticlePage = false,
 }) {
   const $ = cheerio.load(html);
   const errors = [];
@@ -336,8 +372,8 @@ export function auditHtml({
       errors.push(error("schema-type", `Missing required ${type} JSON-LD schema.`, { type }));
     }
   }
-  if (checkCleaningPage) {
-    auditCleaningPage($, parsedSchemas, errors, expected, absolute);
+  if (checkArticlePage) {
+    auditArticlePage($, parsedSchemas, errors, expected, absolute);
   }
 
   return { valid: errors.length === 0, errors };
@@ -414,7 +450,7 @@ export function auditDiscoveryFiles({ siteUrl, sitemapXml, robotsText } = {}) {
   }
 
   const origin = site.origin;
-  const routes = ["/", "/guide/", "/guide/how-to-clean/"];
+  const routes = PAGE_EXPECTATIONS.map(({ route }) => route);
   const errors = [];
   const sitemap = typeof sitemapXml === "string" ? sitemapXml : "";
   const robots = typeof robotsText === "string" ? robotsText : "";
@@ -637,11 +673,25 @@ async function fetchLinkedPages({
   const pages = new Map();
   const crawlErrors = [];
   const initialUrls = PAGE_EXPECTATIONS.map(({ route }) => expectedUrl(siteUrl, route));
-  const queued = initialUrls.map((url) => ({ url, depth: 0 }));
-  const discovered = new Set(initialUrls);
+  const initialUrlsWithinBudget = initialUrls.slice(0, Math.max(0, maxUrls));
+  const queued = initialUrlsWithinBudget.map((url) => ({ url, depth: 0 }));
+  const discovered = new Set(initialUrlsWithinBudget);
   let fetchedPages = 0;
   let pageBudgetReported = false;
-  let urlBudgetReported = false;
+  let urlBudgetReported = initialUrlsWithinBudget.length < initialUrls.length;
+
+  if (urlBudgetReported) {
+    crawlErrors.push(
+      error(
+        "crawl-url-budget",
+        `Crawler stopped discovering URLs after reaching maxUrls=${maxUrls}; increase maxUrls or constrain generated links.`,
+        {
+          targetUrl: initialUrls[initialUrlsWithinBudget.length],
+          maxUrls,
+        },
+      ),
+    );
+  }
 
   while (queued.length > 0) {
     if (fetchedPages >= maxPages) {
@@ -762,7 +812,7 @@ export async function runLiveSeoCheck({
           html: page.html,
           siteUrl: normalizedSiteUrl,
           expected,
-          checkCleaningPage: expected.checkCleaningPage,
+          checkArticlePage: expected.checkArticlePage,
         }).errors,
       );
     }

@@ -1,12 +1,71 @@
 import { describe, expect, it } from "vitest";
 
-const expected = {
-  title: "How to Clean Items in ReStory — First Device Guide",
-  description:
-    "Learn how cleaning works in ReStory, where to place dirty parts, how to clean the first Pokia device, and what to check when dirt will not disappear.",
-  h1: "How to Clean Items in ReStory",
-  requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
-};
+const routeExpectations = [
+  {
+    route: "/",
+    title: "ReStory Wiki — Guides, Demo & Repair Tips",
+    description:
+      "Explore ReStory: Chill Electronics Repairs guides, demo details, system requirements, repair walkthroughs, customization tips, and troubleshooting help.",
+    h1: "ReStory: Chill Electronics Repairs Guides",
+  },
+  {
+    route: "/guide/",
+    title: "ReStory Guides — Beginner, Repair & Shop Help",
+    description:
+      "Browse ReStory guides for beginners, cleaning, repairs, shop management, customization, system requirements, and common troubleshooting questions.",
+    h1: "ReStory Guides",
+  },
+  {
+    route: "/guide/how-to-clean/",
+    title: "How to Clean Items in ReStory — First Device Guide",
+    description:
+      "Learn how cleaning works in ReStory, where to place dirty parts, how to clean the first Pokia device, and what to check when dirt will not disappear.",
+    h1: "How to Clean Items in ReStory",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/demo/",
+    title: "ReStory Demo Guide — Download, Content & Full Game",
+    description:
+      "Learn where to download the ReStory demo, what it includes, how it differs from the full game, and what is known about demo save progress.",
+    h1: "ReStory Demo Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/customize-display/",
+    title: "How to Customize Your Shop in ReStory",
+    description:
+      "Understand ReStory shop customization, including walls, shelf styles, storage, decorations, and how shop changes differ from gadget painting.",
+    h1: "How to Customize Your Shop in ReStory",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/system-requirements/",
+    title: "ReStory System Requirements — Can Your PC Run It?",
+    description:
+      "Check ReStory's official minimum PC requirements, storage and DirectX needs, and version-labeled VSync and frame-rate troubleshooting advice.",
+    h1: "ReStory System Requirements",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/painting/",
+    title: "ReStory Painting Guide — Airbrush & Color Palettes",
+    description:
+      "Learn what the Airbrush and color palettes do in ReStory, how painting differs from shop customization, and which painting details remain unconfirmed.",
+    h1: "ReStory Painting Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+];
+
+const expected = routeExpectations[2];
+const articleExpectations = routeExpectations.filter(
+  (pageExpected) => pageExpected.checkArticlePage,
+);
 
 const faq = [
   {
@@ -64,19 +123,31 @@ function schemas({
     .join("")}${malformed ? '<script type="application/ld+json">{broken</script>' : ""}`;
 }
 
-function cleaningFixture({
-  title = expected.title,
-  description = expected.description,
-  canonical = "http://localhost:3000/guide/how-to-clean/",
-  ogUrl = canonical,
-  headings = `<h1>${expected.h1}</h1><h2 id="cleaning">Cleaning</h2><h3>Step</h3><h2 id="faq">FAQ</h2>`,
-  jsonLd = schemas(),
-  tocTarget = "cleaning",
-  faqAnswer = faq[0].answer,
-  tocHtml = `<aside aria-label="Table of contents"><a href="#${tocTarget}">Cleaning</a></aside>`,
-  faqHtml = `<div class="faq-list"><details><summary>${faq[0].question}</summary><p>${faqAnswer}</p></details></div>`,
-  extraBody = "",
-} = {}) {
+function articleFixture(options = {}) {
+  const pageExpected = options.pageExpected ?? expected;
+  const canonical = options.canonical ?? `http://localhost:3000${pageExpected.route}`;
+  const title = options.title ?? pageExpected.title;
+  const description = options.description ?? pageExpected.description;
+  const ogUrl = options.ogUrl ?? canonical;
+  const headings =
+    options.headings ??
+    `<h1>${pageExpected.h1}</h1><h2 id="article-section">Article section</h2><h3>Step</h3><h2 id="faq">FAQ</h2>`;
+  const article = {
+    ...validArticle,
+    headline: pageExpected.h1,
+    description: pageExpected.description,
+    mainEntityOfPage: canonical,
+  };
+  const jsonLd = options.jsonLd ?? schemas({ article });
+  const tocTarget = options.tocTarget ?? "article-section";
+  const faqAnswer = options.faqAnswer ?? faq[0].answer;
+  const tocHtml =
+    options.tocHtml ??
+    `<aside aria-label="Table of contents"><a href="#${tocTarget}">Article section</a></aside>`;
+  const faqHtml =
+    options.faqHtml ??
+    `<div class="faq-list"><details><summary>${faq[0].question}</summary><p>${faqAnswer}</p></details></div>`;
+  const extraBody = options.extraBody ?? "";
   return `<!doctype html>
     <html><head>
       <title>${title}</title>
@@ -103,6 +174,23 @@ function pageFixture(pageExpected, extraBody = "") {
   </head><body><h1>${pageExpected.h1}</h1>${extraBody}</body></html>`;
 }
 
+function requiredPageHtml(url) {
+  const pathname = new URL(url).pathname;
+  const pageExpected = routeExpectations.find(
+    (expectation) => expectation.route === pathname,
+  );
+  if (!pageExpected) return undefined;
+  if (pageExpected.checkArticlePage) {
+    return articleFixture({ pageExpected });
+  }
+  return pageFixture(
+    pageExpected,
+    pageExpected.route === "/guide/"
+      ? '<section id="repair-cleaning"></section>'
+      : "",
+  );
+}
+
 function mockResponse(url, { status = 200, html = "", contentType = "text/html" }) {
   return {
     url,
@@ -122,7 +210,7 @@ async function loadChecker() {
 describe("public discovery-file audit", () => {
   const publicSiteUrl = "https://restory-wiki.vercel.app";
   const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
-  const publicSitemap = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:ignored"><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+  const publicSitemap = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:ignored">${routeExpectations.map(({ route }) => `<url><loc>${publicSiteUrl}${route}</loc></url>`).join("")}</urlset>`;
   const publicRobots = `User-agent: *\nSitemap: ${publicSiteUrl}/sitemap.xml`;
 
   it("accepts canonical public sitemap and robots files", async () => {
@@ -196,7 +284,7 @@ describe("public discovery-file audit", () => {
 
   it("accepts well-formed XML declarations, comments, CDATA, namespaces, and quoted attributes", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
-    const sitemapXml = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:example"><!-- public routes --><x:meta data="a > b" /><![CDATA[metadata]]><url><loc>${publicSiteUrl}/</loc></url><url><loc>${publicSiteUrl}/guide/</loc></url><url><loc>${publicSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+    const sitemapXml = `<?xml version="1.0"?><urlset xmlns="${sitemapNamespace}" xmlns:x="urn:example"><!-- public routes --><x:meta data="a > b" /><![CDATA[metadata]]>${routeExpectations.map(({ route }) => `<url><loc>${publicSiteUrl}${route}</loc></url>`).join("")}</urlset>`;
 
     expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml, robotsText: publicRobots })).toEqual([]);
   });
@@ -225,7 +313,7 @@ describe("public discovery-file audit", () => {
     const namespace = sitemapNamespace;
     const sitemap = (prefix = "") => {
       const name = (local) => (prefix ? `${prefix}:${local}` : local);
-      return `<${name("urlset")} xmlns${prefix ? `:${prefix}` : ""}="${namespace}"><${name("url")}><${name("loc")}>${publicSiteUrl}/</${name("loc")}></${name("url")}><${name("url")}><${name("loc")}>${publicSiteUrl}/guide/</${name("loc")}></${name("url")}><${name("url")}><${name("loc")}>${publicSiteUrl}/guide/how-to-clean/</${name("loc")}></${name("url")}></${name("urlset")}>`;
+      return `<${name("urlset")} xmlns${prefix ? `:${prefix}` : ""}="${namespace}">${routeExpectations.map(({ route }) => `<${name("url")}><${name("loc")}>${publicSiteUrl}${route}</${name("loc")}></${name("url")}>`).join("")}</${name("urlset")}>`;
     };
 
     expect(auditDiscoveryFiles({ siteUrl: publicSiteUrl, sitemapXml: sitemap(), robotsText: publicRobots })).toEqual([]);
@@ -275,7 +363,7 @@ describe("public discovery-file audit", () => {
   it("requires HTTPS for public origins but permits localhost development audits", async () => {
     const { auditDiscoveryFiles } = await loadChecker();
     const localSiteUrl = "http://localhost:3000";
-    const localSitemap = `<urlset xmlns="${sitemapNamespace}"><url><loc>${localSiteUrl}/</loc></url><url><loc>${localSiteUrl}/guide/</loc></url><url><loc>${localSiteUrl}/guide/how-to-clean/</loc></url></urlset>`;
+    const localSitemap = `<urlset xmlns="${sitemapNamespace}">${routeExpectations.map(({ route }) => `<url><loc>${localSiteUrl}${route}</loc></url>`).join("")}</urlset>`;
 
     expect(
       auditDiscoveryFiles({
@@ -311,7 +399,7 @@ describe("public discovery-file audit", () => {
     expect(
       auditDiscoveryFiles({
         siteUrl: "http://dev.localhost:3000",
-        sitemapXml: `<urlset xmlns="${sitemapNamespace}"><url><loc>http://dev.localhost:3000/</loc></url><url><loc>http://dev.localhost:3000/guide/</loc></url><url><loc>http://dev.localhost:3000/guide/how-to-clean/</loc></url></urlset>`,
+        sitemapXml: `<urlset xmlns="${sitemapNamespace}">${routeExpectations.map(({ route }) => `<url><loc>http://dev.localhost:3000${route}</loc></url>`).join("")}</urlset>`,
         robotsText: "Sitemap: http://dev.localhost:3000/sitemap.xml",
       }),
     ).toEqual([]);
@@ -326,16 +414,117 @@ describe("public discovery-file audit", () => {
 });
 
 describe("live SEO HTML audit", () => {
-  it("accepts a complete cleaning-page fixture", async () => {
+  it("defines the exact SEO contract for all seven public routes", async () => {
+    const { PAGE_EXPECTATIONS } = await loadChecker();
+
+    expect(PAGE_EXPECTATIONS).toEqual(routeExpectations);
+  });
+
+  it.each(articleExpectations)(
+    "accepts a complete article fixture for $route",
+    async (pageExpected) => {
+      const { auditHtml } = await loadChecker();
+      expect(auditHtml).toBeTypeOf("function");
+
+      const result = auditHtml({
+        route: pageExpected.route,
+        html: articleFixture({ pageExpected }),
+        siteUrl: "http://localhost:3000",
+        expected: pageExpected,
+        checkArticlePage: true,
+      });
+
+      expect(result).toEqual({ valid: true, errors: [] });
+    },
+  );
+
+  it.each(
+    articleExpectations.flatMap((pageExpected) => [
+      {
+        pageExpected,
+        defect: "an empty TOC",
+        fixture: { tocHtml: '<aside aria-label="Table of contents"></aside>' },
+        code: "toc-missing",
+      },
+      {
+        pageExpected,
+        defect: "a TOC target on another path",
+        fixture: {
+          tocHtml:
+            '<aside aria-label="Table of contents"><a href="/guide/#article-section">Article section</a></aside>',
+        },
+        code: "toc-target",
+      },
+      {
+        pageExpected,
+        defect: "an Article mainEntityOfPage URL mismatch",
+        fixture: {
+          jsonLd: schemas({
+            article: {
+              ...validArticle,
+              headline: pageExpected.h1,
+              description: pageExpected.description,
+              mainEntityOfPage: "http://localhost:3000/not-this-article/",
+            },
+          }),
+        },
+        code: "article-entity",
+      },
+      {
+        pageExpected,
+        defect: "an empty visible FAQ",
+        fixture: { faqHtml: '<div class="faq-list"></div>' },
+        code: "faq-visible",
+      },
+      {
+        pageExpected,
+        defect: "visible and schema FAQ drift",
+        fixture: { faqAnswer: "A different visible answer." },
+        code: "faq-schema",
+      },
+      {
+        pageExpected,
+        defect: "a missing TOC fragment target",
+        fixture: { tocTarget: "missing-article-section" },
+        code: "toc-target",
+      },
+      {
+        pageExpected,
+        defect: "a duplicate TOC fragment target",
+        fixture: {
+          headings: `<h1>${pageExpected.h1}</h1><h2 id="article-section">First</h2><h2 id="article-section">Second</h2><h2 id="faq">FAQ</h2>`,
+        },
+        code: "toc-target",
+      },
+    ]),
+  )(
+    "applies the article contract to $pageExpected.route: rejects $defect",
+    async ({ pageExpected, fixture, code }) => {
+      const { auditHtml } = await loadChecker();
+
+      const result = auditHtml({
+        route: pageExpected.route,
+        html: articleFixture({ pageExpected, ...fixture }),
+        siteUrl: "http://localhost:3000",
+        expected: pageExpected,
+        checkArticlePage: true,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.map((auditError) => auditError.code)).toContain(code);
+    },
+  );
+
+  it("accepts a complete article-page fixture", async () => {
     const { auditHtml } = await loadChecker();
     expect(auditHtml).toBeTypeOf("function");
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture(),
+      html: articleFixture(),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result).toEqual({ valid: true, errors: [] });
@@ -347,7 +536,7 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         title: "Wrong title",
         description: "Wrong description",
         canonical: "http://localhost:3000/wrong/",
@@ -356,7 +545,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -379,14 +568,14 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({ malformed: true, includeFaq: false }),
         tocTarget: "missing",
         faqAnswer: "Different visible answer.",
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -409,12 +598,12 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         tocHtml: `<aside aria-label="Table of contents"><a href="${href}">Cleaning</a></aside>`,
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -431,14 +620,14 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({ emptyFaq: true }),
         tocHtml: "",
         faqHtml: "",
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -453,7 +642,7 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           article: {
             "@context": "https://schema.org",
@@ -473,7 +662,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -492,14 +681,14 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           article: { ...validArticle, ...articleOverride },
         }),
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -514,14 +703,14 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           article: { ...validArticle, mainEntityOfPage: wrongUrl },
         }),
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -538,7 +727,7 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           breadcrumbs: {
             "@context": "https://schema.org",
@@ -549,7 +738,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -569,7 +758,7 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           breadcrumbs: {
             ...validBreadcrumbs,
@@ -581,7 +770,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -594,7 +783,7 @@ describe("live SEO HTML audit", () => {
     const { auditHtml } = await loadChecker();
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           breadcrumbs: {
             ...validBreadcrumbs,
@@ -612,7 +801,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.errors.map((auditError) => auditError.code)).toContain(
@@ -624,7 +813,7 @@ describe("live SEO HTML audit", () => {
     const { auditHtml } = await loadChecker();
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({
           breadcrumbs: {
             ...validBreadcrumbs,
@@ -639,7 +828,7 @@ describe("live SEO HTML audit", () => {
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.errors.map((auditError) => auditError.code)).toContain(
@@ -666,12 +855,12 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: `${schemas({ includeFaq: false })}<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`,
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -684,14 +873,14 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({
+      html: articleFixture({
         jsonLd: schemas({ faqItems: [{ question: " ", answer: " " }] }),
         faqHtml:
           '<div class="faq-list"><details><summary> </summary><p> </p></details></div>',
       }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -709,10 +898,10 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({ jsonLd: schemas({ faqItems: [faqItem] }) }),
+      html: articleFixture({ jsonLd: schemas({ faqItems: [faqItem] }) }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -734,10 +923,10 @@ describe("live SEO HTML audit", () => {
 
     const result = auditHtml({
       route: "/guide/how-to-clean/",
-      html: cleaningFixture({ faqHtml }),
+      html: articleFixture({ faqHtml }),
       siteUrl: "http://localhost:3000",
       expected,
-      checkCleaningPage: true,
+      checkArticlePage: true,
     });
 
     expect(result.valid).toBe(false);
@@ -766,12 +955,12 @@ describe("internal link audit", () => {
 
     const results = await Promise.race([run, testGuard]);
 
-    expect(fetchOptions).toHaveLength(3);
+    expect(fetchOptions).toHaveLength(7);
     expect(fetchOptions.every((options) => options.signal instanceof AbortSignal)).toBe(
       true,
     );
     expect(fetchOptions.every((options) => options.signal.aborted)).toBe(true);
-    expect(results).toHaveLength(3);
+    expect(results).toHaveLength(7);
     expect(results.every((result) => result.status === 0 && !result.valid)).toBe(true);
     expect(
       results.every((result) =>
@@ -796,7 +985,7 @@ describe("internal link audit", () => {
           html: pageFixture(guide, '<section id="repair-cleaning"></section>'),
         });
       }
-      return mockResponse(url, { html: cleaningFixture() });
+      return mockResponse(url, { html: requiredPageHtml(url) });
     };
 
     const results = await runLiveSeoCheck({
@@ -834,8 +1023,10 @@ describe("internal link audit", () => {
         });
       }
       if (url === "http://localhost:3000/guide/how-to-clean/") {
-        return mockResponse(url, { html: cleaningFixture() });
+        return mockResponse(url, { html: articleFixture() });
       }
+      const requiredHtml = requiredPageHtml(url);
+      if (requiredHtml) return mockResponse(url, { html: requiredHtml });
       const n = Number(new URL(url).searchParams.get("n"));
       if (Number.isInteger(n) && n < 20) {
         return mockResponse(url, {
@@ -848,7 +1039,7 @@ describe("internal link audit", () => {
       siteUrl: "http://localhost:3000",
       fetchImpl,
       fetchTimeoutMs: 1_000,
-      maxPages: 6,
+      maxPages: 10,
       maxDepth: 30,
       maxUrls: 30,
       write: () => undefined,
@@ -862,14 +1053,14 @@ describe("internal link audit", () => {
       .flatMap((result) => result.errors)
       .find((auditError) => auditError.code === "crawl-page-budget");
 
-    expect(fetched).toHaveLength(6);
-    expect(budgetError).toMatchObject({ maxPages: 6 });
-    expect(budgetError.message).toContain("maxPages=6");
+    expect(fetched).toHaveLength(10);
+    expect(budgetError).toMatchObject({ maxPages: 10 });
+    expect(budgetError.message).toContain("maxPages=10");
   });
 
   it.each([
     ["depth", { maxDepth: 0 }, "crawl-depth-budget", "maxDepth=0"],
-    ["URL", { maxUrls: 3 }, "crawl-url-budget", "maxUrls=3"],
+    ["URL", { maxUrls: 7 }, "crawl-url-budget", "maxUrls=7"],
   ])(
     "reports an actionable %s-budget error instead of silently truncating",
     async (_budget, limits, code, messagePart) => {
@@ -889,8 +1080,10 @@ describe("internal link audit", () => {
           });
         }
         if (url === "http://localhost:3000/guide/how-to-clean/") {
-          return mockResponse(url, { html: cleaningFixture() });
+          return mockResponse(url, { html: articleFixture() });
         }
+        const requiredHtml = requiredPageHtml(url);
+        if (requiredHtml) return mockResponse(url, { html: requiredHtml });
         return mockResponse(url, { html: "<p>Extra</p>" });
       };
 
@@ -905,6 +1098,9 @@ describe("internal link audit", () => {
         .find((auditError) => auditError.code === code);
 
       expect(fetched).not.toContain("http://localhost:3000/extra/");
+      if (limits.maxUrls) {
+        expect(fetched.length).toBeLessThanOrEqual(limits.maxUrls);
+      }
       expect(budgetError.message).toContain(messagePart);
       expect(budgetError).toMatchObject({
         sourceUrl: "http://localhost:3000/",
@@ -912,6 +1108,32 @@ describe("internal link audit", () => {
       });
     },
   );
+
+  it("counts required route seeds against the maxUrls crawler budget", async () => {
+    const { runLiveSeoCheck } = await loadChecker();
+    const fetched = [];
+    const maxUrls = 3;
+
+    const results = await runLiveSeoCheck({
+      siteUrl: "http://localhost:3000",
+      maxUrls,
+      fetchImpl: async (url) => {
+        fetched.push(url);
+        return mockResponse(url, { html: requiredPageHtml(url) });
+      },
+      write: () => undefined,
+    });
+    const budgetError = results
+      .flatMap((result) => result.errors)
+      .find((auditError) => auditError.code === "crawl-url-budget");
+
+    expect(fetched).toHaveLength(maxUrls);
+    expect(budgetError).toMatchObject({
+      maxUrls,
+      targetUrl: "http://localhost:3000/demo/",
+    });
+    expect(budgetError.message).toContain(`maxUrls=${maxUrls}`);
+  });
 
   it("does not parse or enqueue links from a non-HTML response", async () => {
     const { PAGE_EXPECTATIONS, runLiveSeoCheck } = await loadChecker();
@@ -930,8 +1152,10 @@ describe("internal link audit", () => {
         });
       }
       if (url === "http://localhost:3000/guide/how-to-clean/") {
-        return mockResponse(url, { html: cleaningFixture() });
+        return mockResponse(url, { html: articleFixture() });
       }
+      const requiredHtml = requiredPageHtml(url);
+      if (requiredHtml) return mockResponse(url, { html: requiredHtml });
       if (url === "http://localhost:3000/download/") {
         return mockResponse(url, {
           contentType: "application/pdf",
@@ -968,8 +1192,10 @@ describe("internal link audit", () => {
         });
       }
       if (url === "http://localhost:3000/guide/how-to-clean/") {
-        return mockResponse(url, { html: cleaningFixture() });
+        return mockResponse(url, { html: articleFixture() });
       }
+      const requiredHtml = requiredPageHtml(url);
+      if (requiredHtml) return mockResponse(url, { html: requiredHtml });
       if (url === "http://localhost:3000/gone/") {
         return mockResponse(url, {
           status: 404,
@@ -1034,7 +1260,7 @@ describe("internal link audit", () => {
       ],
       [
         "http://localhost:3000/guide/how-to-clean/",
-        { status: 200, html: cleaningFixture() },
+        { status: 200, html: articleFixture() },
       ],
       [
         "http://localhost:3000/extra/",
@@ -1047,7 +1273,10 @@ describe("internal link audit", () => {
       if (url === "http://localhost:3000/missing/") {
         throw new Error("socket exploded while fetching missing page");
       }
-      const response = responses.get(url) ?? { status: 404, html: "Not found" };
+      const response = responses.get(url) ??
+        (requiredPageHtml(url)
+          ? { status: 200, html: requiredPageHtml(url) }
+          : { status: 404, html: "Not found" });
       return mockResponse(url, response);
     };
 
@@ -1099,7 +1328,11 @@ describe("internal link audit", () => {
         };
       }
       if (url === "http://localhost:3000/guide/how-to-clean/") {
-        return { url, status: 200, text: async () => cleaningFixture() };
+        return { url, status: 200, text: async () => articleFixture() };
+      }
+      const requiredHtml = requiredPageHtml(url);
+      if (requiredHtml) {
+        return { url, status: 200, text: async () => requiredHtml };
       }
       return { url, status: 404, text: async () => "Not found" };
     };
