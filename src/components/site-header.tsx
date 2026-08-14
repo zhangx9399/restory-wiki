@@ -7,8 +7,9 @@ import { routes, siteConfig } from "@/data/site";
 
 const navigationItems = [
   { label: "Guides", href: routes.guide },
+  { label: "Demo", href: routes.demo },
   { label: "Repair & Cleaning", href: `${routes.guide}#repair-cleaning` },
-  { label: "Cleaning Guide", href: routes.cleaning },
+  { label: "System Requirements", href: routes.systemRequirements },
 ] as const;
 
 const subscribeToHydration = () => () => undefined;

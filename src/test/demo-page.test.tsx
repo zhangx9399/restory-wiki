@@ -174,6 +174,12 @@ describe("DemoPage", () => {
       "href",
       "/guide/how-to-clean",
     );
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/app/demo/page.tsx"),
+      "utf8",
+    );
+    expect(pageSource).toContain("href={routes.systemRequirements}");
+    expect(pageSource).not.toContain('href="/system-requirements/"');
   });
 
   it("injects exactly Article, BreadcrumbList, and FAQPage schemas", () => {

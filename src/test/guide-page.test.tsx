@@ -118,7 +118,7 @@ describe("GuidePage", () => {
     });
   });
 
-  it("shows eight cards with one published cleaning link and seven inert coming cards", () => {
+  it("shows eight cards with five published links and three inert coming cards", () => {
     const { container } = render(<GuidePage />);
 
     const cards = Array.from(container.querySelectorAll<HTMLElement>(".guide-card"));
@@ -129,12 +129,16 @@ describe("GuidePage", () => {
     );
 
     const publishedLinks = cards.filter((card) => card.tagName === "A");
-    expect(publishedLinks).toHaveLength(1);
-    expect(publishedLinks[0]).toHaveAttribute("href", "/guide/how-to-clean");
-    expect(publishedLinks[0]).toHaveTextContent("How to Clean Items");
+    expect(publishedLinks.map((card) => card.getAttribute("href"))).toEqual([
+      "/demo",
+      "/guide/how-to-clean",
+      "/guide/painting",
+      "/guide/customize-display",
+      "/system-requirements",
+    ]);
 
     const upcomingCards = cards.filter((card) => card.tagName === "DIV");
-    expect(upcomingCards).toHaveLength(7);
+    expect(upcomingCards).toHaveLength(3);
     for (const card of upcomingCards) {
       const title = card.querySelector("h3")?.textContent;
       expect(card).toHaveAttribute("aria-label", `${title}, coming next`);

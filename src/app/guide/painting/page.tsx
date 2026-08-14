@@ -93,7 +93,7 @@ export default function PaintingPage() {
             <h2>Related guides</h2>
             <ul>
               <li>
-                <Link href="/guide/customize-display/">Customize Display</Link>
+                <Link href={routes.customizeDisplay}>Customize Display</Link>
               </li>
               <li>
                 <Link href={routes.guide}>Guide</Link>

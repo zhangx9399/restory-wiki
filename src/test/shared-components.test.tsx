@@ -75,6 +75,26 @@ describe("Breadcrumbs", () => {
 });
 
 describe("SiteHeader", () => {
+  it("renders the public navigation in the approved order", () => {
+    render(<SiteHeader />);
+
+    const nav = screen.getByRole("navigation", { name: "Primary navigation" });
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent?.trim())).toEqual([
+      "Guides",
+      "Demo",
+      "Repair & Cleaning",
+      "System Requirements",
+      "Official Steam ↗",
+    ]);
+    expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+      "/guide",
+      "/demo",
+      "/guide#repair-cleaning",
+      "/system-requirements",
+      "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/",
+    ]);
+  });
+
   it("server-renders navigation in the unenhanced state", () => {
     const html = renderToStaticMarkup(<SiteHeader />);
 

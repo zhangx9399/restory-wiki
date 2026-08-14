@@ -42,7 +42,8 @@ export const guideEntries = [
     description:
       "What the demo includes and which details still need official confirmation.",
     category: "Getting Started",
-    status: "coming-next",
+    href: routes.demo,
+    status: "published",
   },
   {
     title: "How to Clean Items",
@@ -56,7 +57,8 @@ export const guideEntries = [
     title: "Painting Guide",
     description: "Airbrush, color palettes, and known customization limits.",
     category: "Repair & Cleaning",
-    status: "coming-next",
+    href: routes.painting,
+    status: "published",
   },
   {
     title: "How to Sell Devices",
@@ -70,14 +72,16 @@ export const guideEntries = [
     description:
       "Understand gadget painting, walls, shelves, storage, and decorations.",
     category: "Shop & Customization",
-    status: "coming-next",
+    href: routes.customizeDisplay,
+    status: "published",
   },
   {
     title: "System Requirements",
     description:
       "Official minimum specifications and version-labeled performance advice.",
     category: "Technical Help",
-    status: "coming-next",
+    href: routes.systemRequirements,
+    status: "published",
   },
   {
     title: "Missing Joystick",

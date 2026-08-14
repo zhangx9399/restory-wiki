@@ -8,6 +8,10 @@ const expectedRoutes = {
   home: "/",
   guide: "/guide/",
   cleaning: "/guide/how-to-clean/",
+  demo: "/demo/",
+  customizeDisplay: "/guide/customize-display/",
+  systemRequirements: "/system-requirements/",
+  painting: "/guide/painting/",
 } as const;
 
 describe("SEO validation rules", () => {
@@ -21,8 +25,8 @@ describe("SEO validation rules", () => {
   });
 
   it.each([
-    [139, false],
-    [140, true],
+    [129, false],
+    [130, true],
     [160, true],
     [161, false],
   ])("validates a %i-character description as %s", (length, expected) => {
@@ -52,7 +56,7 @@ describe("page SEO", () => {
   );
 
   it.each(Object.entries(pageSeo))(
-    "keeps %s description within 140-160 characters",
+    "keeps %s description within 130-160 characters",
     (_, seo) => {
       expect(validateDescription(seo.description)).toBe(true);
     },
@@ -75,16 +79,18 @@ describe("guide data", () => {
     expect(new Set(guideCategories).size).toBe(guideCategories.length);
   });
 
-  it("publishes only the cleaning guide at the cleaning route", () => {
+  it("publishes the first five real guides at defined routes", () => {
     const published = guideEntries.filter(
       (entry) => entry.status === "published",
     );
 
-    expect(published).toHaveLength(1);
-    expect(published[0]).toMatchObject({
-      title: "How to Clean Items",
-      href: routes.cleaning,
-    });
+    expect(published.map(({ title, href }) => ({ title, href }))).toEqual([
+      { title: "Demo vs Full Game", href: routes.demo },
+      { title: "How to Clean Items", href: routes.cleaning },
+      { title: "Painting Guide", href: routes.painting },
+      { title: "Customize Your Shop", href: routes.customizeDisplay },
+      { title: "System Requirements", href: routes.systemRequirements },
+    ]);
   });
 
   it("keeps coming-next guides unlinked", () => {
@@ -92,6 +98,11 @@ describe("guide data", () => {
       (entry) => entry.status === "coming-next",
     );
 
+    expect(comingNext.map((entry) => entry.title)).toEqual([
+      "Beginner Guide",
+      "How to Sell Devices",
+      "Missing Joystick",
+    ]);
     expect(comingNext.every((entry) => !("href" in entry))).toBe(true);
   });
 

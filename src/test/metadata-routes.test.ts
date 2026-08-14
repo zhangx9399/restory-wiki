@@ -13,7 +13,7 @@ describe("metadata routes", () => {
     vi.resetModules();
   });
 
-  it("publishes only the current routes in sitemap order", async () => {
+  it("publishes all seven current routes once in sitemap order", async () => {
     const { default: sitemap } = await import("@/app/sitemap");
     const urls = sitemap().map(({ url }) => url);
 
@@ -21,7 +21,13 @@ describe("metadata routes", () => {
       "http://localhost:3000/",
       "http://localhost:3000/guide/",
       "http://localhost:3000/guide/how-to-clean/",
+      "http://localhost:3000/demo/",
+      "http://localhost:3000/guide/customize-display/",
+      "http://localhost:3000/system-requirements/",
+      "http://localhost:3000/guide/painting/",
     ]);
+    expect(new Set(urls).size).toBe(7);
+    expect(urls.every((url) => url.startsWith("http://localhost:3000/"))).toBe(true);
     expect(urls.some((url) => url.includes("coming-next"))).toBe(false);
   });
 
@@ -52,7 +58,15 @@ describe("metadata routes", () => {
       "https://restory-wiki.vercel.app/",
       "https://restory-wiki.vercel.app/guide/",
       "https://restory-wiki.vercel.app/guide/how-to-clean/",
+      "https://restory-wiki.vercel.app/demo/",
+      "https://restory-wiki.vercel.app/guide/customize-display/",
+      "https://restory-wiki.vercel.app/system-requirements/",
+      "https://restory-wiki.vercel.app/guide/painting/",
     ]);
+    expect(new Set(urls).size).toBe(7);
+    expect(
+      urls.every((url) => url.startsWith("https://restory-wiki.vercel.app/")),
+    ).toBe(true);
     expect(robotsMetadata.sitemap).toBe(
       "https://restory-wiki.vercel.app/sitemap.xml",
     );

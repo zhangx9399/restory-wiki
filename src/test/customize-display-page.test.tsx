@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { compile, run } from "@mdx-js/mdx";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import rehypeSlug from "rehype-slug";
+import * as jsxRuntime from "react/jsx-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import CustomizeDisplayPage, {
@@ -178,6 +181,12 @@ describe("CustomizeDisplayPage", () => {
       "href",
       "/guide",
     );
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/app/guide/customize-display/page.tsx"),
+      "utf8",
+    );
+    expect(pageSource).toContain("href={routes.painting}");
+    expect(pageSource).not.toContain('href="/guide/painting/"');
   });
 
   it("injects Article, BreadcrumbList, and FAQPage data", () => {
@@ -275,6 +284,35 @@ describe("customization MDX content contract", () => {
     expect(mdx.indexOf('<div className="quick-answer">')).toBeLessThan(
       mdx.indexOf("## Shop Customization vs Gadget Painting"),
     );
+  });
+
+  it("renders seven unique real-MDX H2 slugs that exactly match the TOC", async () => {
+    const compilableMdx = mdx
+      .replace(/^import .+;$/gm, "")
+      .replace("<FaqList items={customizeDisplayFaqItems} />", "<div />");
+    const compiled = await compile(compilableMdx, {
+      outputFormat: "function-body",
+      rehypePlugins: [rehypeSlug],
+    });
+    const { default: RealCustomizeDisplayContent } = await run(compiled, {
+      ...jsxRuntime,
+      baseUrl: import.meta.url,
+    });
+    const { container } = render(<RealCustomizeDisplayContent />);
+    const renderedHrefs = Array.from(container.querySelectorAll("h2"), (heading) =>
+      `#${heading.id}`,
+    );
+    const tocSource = pageSource
+      .split("const tableOfContents = [")[1]
+      ?.split("] as const;")[0];
+    const tocHrefs = Array.from(
+      tocSource?.matchAll(/"(#[a-z0-9-]+)"/g) ?? [],
+      (match) => match[1],
+    );
+
+    expect(renderedHrefs).toHaveLength(7);
+    expect(new Set(renderedHrefs).size).toBe(7);
+    expect(renderedHrefs).toEqual(tocHrefs);
   });
 
   it("contains 900 to 1300 words of real English body content", () => {

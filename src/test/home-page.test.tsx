@@ -99,13 +99,23 @@ describe("HomePage", () => {
         name: /How to Clean Items/i,
       }),
     ).toHaveAttribute("href", "/guide/how-to-clean");
-    for (const title of ["Beginner Guide", "Demo vs Full Game", "Customize Your Shop"]) {
-      const card = within(featuredGrid as HTMLElement)
-        .getByRole("heading", { level: 3, name: title })
-        .closest(".guide-card");
-      expect(card?.tagName).toBe("DIV");
-      expect(within(card as HTMLElement).queryByRole("link")).not.toBeInTheDocument();
-    }
+    expect(
+      within(featuredGrid as HTMLElement).getByRole("link", {
+        name: /Demo vs Full Game/i,
+      }),
+    ).toHaveAttribute("href", "/demo");
+    expect(
+      within(featuredGrid as HTMLElement).getByRole("link", {
+        name: /Customize Your Shop/i,
+      }),
+    ).toHaveAttribute("href", "/guide/customize-display");
+    const beginnerCard = within(featuredGrid as HTMLElement)
+      .getByRole("heading", { level: 3, name: "Beginner Guide" })
+      .closest(".guide-card");
+    expect(beginnerCard?.tagName).toBe("DIV");
+    expect(
+      within(beginnerCard as HTMLElement).queryByRole("link"),
+    ).not.toBeInTheDocument();
 
     const browseHeading = within(startSection as HTMLElement).getByRole("heading", {
       level: 3,

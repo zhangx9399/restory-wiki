@@ -86,7 +86,7 @@ export default function DemoPage() {
 
           <p>
             Related guides: <Link href={routes.guide}>All ReStory guides</Link>,{" "}
-            <Link href="/system-requirements/">System requirements</Link>, and{" "}
+            <Link href={routes.systemRequirements}>System requirements</Link>, and{" "}
             <Link href={routes.cleaning}>Cleaning guide</Link>.
           </p>
         </article>

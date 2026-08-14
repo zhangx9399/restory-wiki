@@ -3,5 +3,5 @@ export function validateTitle(title: string): boolean {
 }
 
 export function validateDescription(description: string): boolean {
-  return description.length >= 140 && description.length <= 160;
+  return description.length >= 130 && description.length <= 160;
 }

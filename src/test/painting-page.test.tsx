@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { compile, run } from "@mdx-js/mdx";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import rehypeSlug from "rehype-slug";
+import * as jsxRuntime from "react/jsx-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import PaintingPage, { metadata } from "@/app/guide/painting/page";
@@ -255,6 +258,12 @@ describe("PaintingPage", () => {
       "href",
       "/guide/how-to-clean",
     );
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/app/guide/painting/page.tsx"),
+      "utf8",
+    );
+    expect(pageSource).toContain("href={routes.customizeDisplay}");
+    expect(pageSource).not.toContain('href="/guide/customize-display/"');
   });
 });
 
@@ -275,18 +284,21 @@ describe("painting MDX content contract", () => {
     );
   });
 
-  it("derives seven unique MDX slugs that exactly match the page TOC", () => {
-    const slugify = (heading: string) =>
-      heading
-        .toLowerCase()
-        .replace(/&/g, " and ")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
-    const mdxSlugs = Array.from(
-      mdx.matchAll(/^##\s+(.+)$/gm),
-      (match) => `#${slugify(match[1])}`,
+  it("renders seven unique real-MDX H2 slugs that exactly match the page TOC", async () => {
+    const compilableMdx = mdx
+      .replace(/^import .+;$/gm, "")
+      .replace("<FaqList items={paintingFaqItems} />", "<div />");
+    const compiled = await compile(compilableMdx, {
+      outputFormat: "function-body",
+      rehypePlugins: [rehypeSlug],
+    });
+    const { default: RealPaintingContent } = await run(compiled, {
+      ...jsxRuntime,
+      baseUrl: import.meta.url,
+    });
+    const { container } = render(<RealPaintingContent />);
+    const renderedHrefs = Array.from(container.querySelectorAll("h2"), (heading) =>
+      `#${heading.id}`,
     );
     const tocSource = pageSource
       .split("const tableOfContents = [")[1]
@@ -296,11 +308,11 @@ describe("painting MDX content contract", () => {
       (match) => match[1],
     );
 
-    expect(mdxSlugs).toEqual(tocHrefs);
+    expect(renderedHrefs).toEqual(tocHrefs);
     expect(sourceTocHrefs).toEqual(tocHrefs);
-    expect(new Set(mdxSlugs).size).toBe(7);
-    for (const slug of mdxSlugs) {
-      expect(mdxSlugs.filter((candidate) => candidate === slug)).toHaveLength(1);
+    expect(new Set(renderedHrefs).size).toBe(7);
+    for (const slug of renderedHrefs) {
+      expect(renderedHrefs.filter((candidate) => candidate === slug)).toHaveLength(1);
       expect(sourceTocHrefs.filter((candidate) => candidate === slug)).toHaveLength(1);
     }
   });
