@@ -28,8 +28,8 @@ vi.mock("@/content/painting.mdx", () => ({
           <summary>Where do the Airbrush and color palettes come from?</summary>
           <p>
             Official ReStory community information says both are purchased from the
-            in-game shop and are used to change a device&apos;s appearance. Current
-            sources do not establish an exact unlock level or permanent menu path.
+            in-game shop and are used to change a device&apos;s appearance. An exact
+            unlock level is unconfirmed, and a permanent menu path is unconfirmed.
           </p>
         </details>
         <details>
@@ -43,9 +43,9 @@ vi.mock("@/content/painting.mdx", () => ({
         <details>
           <summary>Can this guide guarantee a scoring formula for painting orders?</summary>
           <p>
-            No. No reliable source supports a universal scoring formula for painting
-            or pattern orders, so follow the current order brief and visible feedback
-            without treating any player theory as guaranteed.
+            No. A universal scoring formula is unconfirmed because no reliable source
+            supports one for painting or pattern orders. Follow the current order
+            brief and visible feedback without treating player theory as guaranteed.
           </p>
         </details>
       </div>
@@ -60,7 +60,7 @@ const expectedFaq = [
   {
     question: "Where do the Airbrush and color palettes come from?",
     answer:
-      "Official ReStory community information says both are purchased from the in-game shop and are used to change a device's appearance. Current sources do not establish an exact unlock level or permanent menu path.",
+      "Official ReStory community information says both are purchased from the in-game shop and are used to change a device's appearance. An exact unlock level is unconfirmed, and a permanent menu path is unconfirmed.",
   },
   {
     question: "Is device painting the same as shop customization?",
@@ -70,7 +70,7 @@ const expectedFaq = [
   {
     question: "Can this guide guarantee a scoring formula for painting orders?",
     answer:
-      "No. No reliable source supports a universal scoring formula for painting or pattern orders, so follow the current order brief and visible feedback without treating any player theory as guaranteed.",
+      "No. A universal scoring formula is unconfirmed because no reliable source supports one for painting or pattern orders. Follow the current order brief and visible feedback without treating player theory as guaranteed.",
   },
 ] as const;
 
@@ -143,7 +143,7 @@ describe("PaintingPage", () => {
       "/",
     );
     expect(
-      within(breadcrumbs).getByRole("link", { name: "Guides" }),
+      within(breadcrumbs).getByRole("link", { name: "Guide" }),
     ).toHaveAttribute("href", "/guide");
     expect(within(breadcrumbs).getByText("Painting Guide")).toHaveAttribute(
       "aria-current",
@@ -239,17 +239,19 @@ describe("PaintingPage", () => {
   });
 
   it("links to Customize Display, Guide, and Cleaning", () => {
-    render(<PaintingPage />);
+    const { container } = render(<PaintingPage />);
+    const related = container.querySelector(
+      'aside[aria-label="Related guides"]',
+    ) as HTMLElement;
 
-    expect(screen.getByRole("link", { name: "Customize Display" })).toHaveAttribute(
-      "href",
-      "/guide/customize-display",
-    );
-    expect(screen.getByRole("link", { name: "Guide" })).toHaveAttribute(
+    expect(
+      within(related).getByRole("link", { name: "Customize Display" }),
+    ).toHaveAttribute("href", "/guide/customize-display");
+    expect(within(related).getByRole("link", { name: "Guide" })).toHaveAttribute(
       "href",
       "/guide",
     );
-    expect(screen.getByRole("link", { name: "Cleaning" })).toHaveAttribute(
+    expect(within(related).getByRole("link", { name: "Cleaning" })).toHaveAttribute(
       "href",
       "/guide/how-to-clean",
     );
@@ -271,6 +273,36 @@ describe("painting MDX content contract", () => {
     expect(Array.from(mdx.matchAll(/^##\s+(.+)$/gm), (match) => match[1])).toEqual(
       h2Contract,
     );
+  });
+
+  it("derives seven unique MDX slugs that exactly match the page TOC", () => {
+    const slugify = (heading: string) =>
+      heading
+        .toLowerCase()
+        .replace(/&/g, " and ")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+    const mdxSlugs = Array.from(
+      mdx.matchAll(/^##\s+(.+)$/gm),
+      (match) => `#${slugify(match[1])}`,
+    );
+    const tocSource = pageSource
+      .split("const tableOfContents = [")[1]
+      ?.split("] as const;")[0];
+    const sourceTocHrefs = Array.from(
+      tocSource?.matchAll(/"(#[a-z0-9-]+)"/g) ?? [],
+      (match) => match[1],
+    );
+
+    expect(mdxSlugs).toEqual(tocHrefs);
+    expect(sourceTocHrefs).toEqual(tocHrefs);
+    expect(new Set(mdxSlugs).size).toBe(7);
+    for (const slug of mdxSlugs) {
+      expect(mdxSlugs.filter((candidate) => candidate === slug)).toHaveLength(1);
+      expect(sourceTocHrefs.filter((candidate) => candidate === slug)).toHaveLength(1);
+    }
   });
 
   it("places a labeled Quick Answer before the first H2", () => {
@@ -296,7 +328,6 @@ describe("painting MDX content contract", () => {
     expect(mdx).toContain("https://steamcommunity.com/app/3812600/");
     expect(mdx).toContain("https://www.youtube.com/watch?v=x6lq9h_5Xa0");
     expect(mdx).toMatch(/official (?:Steam )?community/i);
-    expect(mdx).toMatch(/Demo[^.]*painting[^.]*community designs/i);
     expect(mdx).toContain("visible gameplay corroboration");
     expect(mdx).toContain("player discussion");
     expect(mdx).toMatch(/B-grade|Grade B/);
@@ -304,23 +335,64 @@ describe("painting MDX content contract", () => {
   });
 
   it("limits official claims to supported painting facts", () => {
-    expect(mdx).toMatch(/Airbrush[^.]*color palettes[^.]*in-game shop/i);
-    expect(mdx).toMatch(/Airbrush[^.]*device(?:'s)? appearance|device appearance[^.]*Airbrush/i);
+    expect(mdx).toMatch(
+      /official[^.]*Airbrush[^.]*color palettes[^.]*in-game shop/i,
+    );
+    expect(mdx).toMatch(
+      /official[^.]*Airbrush[^.]*device(?:'s)? appearance|official[^.]*device appearance[^.]*Airbrush/i,
+    );
+    expect(mdx).not.toMatch(
+      /official[^.\n]*(?:community designs?|showcase|Demo (?:included|had|painting))/i,
+    );
     expect(mdx).not.toMatch(/official(?:ly)?[^.]*pattern order/i);
     expect(mdx).not.toMatch(/official(?:ly)?[^.]*scoring/i);
+
+    const showcaseParagraphs = mdx
+      .split(/\n\s*\n/)
+      .filter((paragraph) => /Demo painting|community designs?|showcase/i.test(paragraph));
+    expect(showcaseParagraphs.length).toBeGreaterThan(0);
+    for (const paragraph of showcaseParagraphs) {
+      expect(paragraph, paragraph).toMatch(
+        /not (?:treated|used) as (?:officially )?confirmed|not approved/i,
+      );
+    }
   });
 
-  it("qualifies every risky implementation detail in the same paragraph", () => {
+  it("marks every occurrence of every risky implementation detail unconfirmed", () => {
     const paragraphs = mdx.split(/\n\s*\n/).filter(Boolean);
-    const riskyDetail =
-      /\b(?:permanent button|menu path|unlock level|undo(?: method)?|paint coverage|paint consumption|color consumption|scoring formula)\b/i;
-    const qualification =
-      /\b(?:unconfirmed|not (?:officially )?confirmed|does not (?:confirm|document|establish)|no reliable source|unknown)\b/i;
-    const riskyParagraphs = paragraphs.filter((paragraph) => riskyDetail.test(paragraph));
+    const risks = [
+      ["permanent button", /\bpermanent button\b/gi],
+      ["menu path", /\bmenu path\b/gi],
+      ["unlock level", /\bunlock level\b/gi],
+      ["undo", /\bundo(?: method)?\b/gi],
+      ["coverage", /\b(?:paint )?coverage\b/gi],
+      ["consumption", /\b(?:paint|color) consumption\b/gi],
+      ["scoring formula", /\b(?:universal )?scoring formula\b/gi],
+    ] as const;
 
-    expect(riskyParagraphs.length).toBeGreaterThanOrEqual(5);
-    for (const paragraph of riskyParagraphs) {
-      expect(paragraph, paragraph).toMatch(qualification);
+    for (const [label, risk] of risks) {
+      const occurrences = paragraphs.flatMap((paragraph) =>
+        Array.from(paragraph.matchAll(risk), (match) => {
+          const start = match.index ?? 0;
+          const sentenceStart = Math.max(
+            paragraph.lastIndexOf(".", start - 1),
+            paragraph.lastIndexOf("?", start - 1),
+            paragraph.lastIndexOf("!", start - 1),
+          );
+          const followingStops = [".", "?", "!"]
+            .map((stop) => paragraph.indexOf(stop, start))
+            .filter((index) => index >= 0);
+          const sentenceEnd = followingStops.length
+            ? Math.min(...followingStops)
+            : paragraph.length;
+          return paragraph.slice(sentenceStart + 1, sentenceEnd + 1).trim();
+        }),
+      );
+
+      expect(occurrences.length, label).toBeGreaterThan(0);
+      for (const sentence of occurrences) {
+        expect(sentence, `${label}: ${sentence}`).toMatch(/\bunconfirmed\b/i);
+      }
     }
   });
 

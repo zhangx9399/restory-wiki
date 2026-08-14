@@ -2,7 +2,7 @@ export const paintingFaqItems = [
   {
     question: "Where do the Airbrush and color palettes come from?",
     answer:
-      "Official ReStory community information says both are purchased from the in-game shop and are used to change a device's appearance. Current sources do not establish an exact unlock level or permanent menu path.",
+      "Official ReStory community information says both are purchased from the in-game shop and are used to change a device's appearance. An exact unlock level is unconfirmed, and a permanent menu path is unconfirmed.",
   },
   {
     question: "Is device painting the same as shop customization?",
@@ -12,6 +12,6 @@ export const paintingFaqItems = [
   {
     question: "Can this guide guarantee a scoring formula for painting orders?",
     answer:
-      "No. No reliable source supports a universal scoring formula for painting or pattern orders, so follow the current order brief and visible feedback without treating any player theory as guaranteed.",
+      "No. A universal scoring formula is unconfirmed because no reliable source supports one for painting or pattern orders. Follow the current order brief and visible feedback without treating player theory as guaranteed.",
   },
 ] as const;

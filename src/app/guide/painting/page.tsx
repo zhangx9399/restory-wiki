@@ -69,7 +69,7 @@ export default function PaintingPage() {
           <Breadcrumbs
             items={[
               { label: "Home", href: routes.home },
-              { label: "Guides", href: routes.guide },
+              { label: "Guide", href: routes.guide },
               { label: "Painting Guide" },
             ]}
           />
