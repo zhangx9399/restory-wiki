@@ -25,16 +25,20 @@ const riskyClaim =
   /officially recommended specifications|save progress (?:will|does) carry over|press the [A-Z0-9]+ button|unlocks? at level \d+|universal scoring formula/i;
 const paintingOperationalClaim =
   /\b(?:press|hold|tap|click)\s+(?:the\s+)?[A-Z0-9]+\b[^.!?\n]*(?:to\s+)?paint|\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i;
+const paintingScoringClaim = /\bscoring (?:formula|rule|algorithm)\b/i;
 const paintingEvidenceLimit =
-  /\b(?:not officially confirmed|unconfirmed|not documented|does not establish|cannot confirm)\b/i;
+  /\b(?:not officially confirmed|unconfirmed|not documented|does not establish|cannot confirm|no reliable source (?:confirms|documents|establishes|supports))\b/i;
 
 function paragraphs(source: string) {
-  return source.split(/\n\s*\n/).filter(Boolean);
+  return source
+    .split(/\n\s*\n|(?=^\s*(?:[-*+]|\d+\.)\s+)/m)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
 }
 
 function cleanedWordCount(source: string) {
   const prose = source
-    .replace(/^import\s.+;$/gm, " ")
+    .replace(/^\s*import\b[\s\S]*?;\s*$/gm, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/^\s{0,3}#{1,6}\s+/gm, "")
@@ -43,12 +47,91 @@ function cleanedWordCount(source: string) {
   return prose.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)?.length ?? 0;
 }
 
-function paintingRiskViolations(source: string) {
-  return paragraphs(source).filter(
-    (paragraph) =>
-      paintingOperationalClaim.test(paragraph) &&
-      !paintingEvidenceLimit.test(paragraph),
+type PaintingRisk = "control" | "unlock" | "scoring";
+
+function sentences(source: string) {
+  return source.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [];
+}
+
+function paintingRisk(sentence: string): PaintingRisk | undefined {
+  if (/\bpainting\s+unlocks?\s+at\s+level\s+\d+\b/i.test(sentence)) {
+    return "unlock";
+  }
+  if (paintingOperationalClaim.test(sentence)) {
+    return "control";
+  }
+  if (paintingScoringClaim.test(sentence)) {
+    return "scoring";
+  }
+}
+
+function hasSpecificRiskReference(sentence: string, risk: PaintingRisk) {
+  const references = {
+    control:
+      /\b(?:(?:this|that) (?:control|button|key|instruction|method)|the (?:painting )?(?:control|button|key|instruction))\b/i,
+    unlock:
+      /\b(?:(?:this|that) (?:unlock(?: level)?|level|milestone|claim)|the (?:unlock level|milestone))\b/i,
+    scoring: /\b(?:this|that|the) (?:scoring )?(?:formula|rule|algorithm|claim)\b/i,
+  } as const;
+
+  return references[risk].test(sentence);
+}
+
+function hasOwnRiskLimit(sentence: string, risk: PaintingRisk) {
+  if (!paintingEvidenceLimit.test(sentence)) {
+    return false;
+  }
+  const directLimit =
+    /\b(?:is|remains)\s+(?:also\s+)?(?:not officially confirmed|unconfirmed|not documented)\b/i;
+
+  if (risk === "control") {
+    return (
+      hasSpecificRiskReference(sentence, risk) ||
+      new RegExp(
+        `(?:${paintingOperationalClaim.source})\\s+${directLimit.source}`,
+        "i",
+      ).test(sentence)
+    );
+  }
+  if (risk === "unlock") {
+    return (
+      hasSpecificRiskReference(sentence, risk) ||
+      new RegExp(
+        `\\bpainting\\s+unlocks?\\s+at\\s+level\\s+\\d+\\s+${directLimit.source}`,
+        "i",
+      ).test(sentence)
+    );
+  }
+
+  return (
+    new RegExp(
+      `${paintingScoringClaim.source}(?:\\s+that applies everywhere)?\\s+${directLimit.source}`,
+      "i",
+    ).test(sentence) ||
+    /\b(?:no reliable source (?:confirms|documents|establishes|supports)|cannot confirm|does not establish)[^.!?]*\bscoring (?:formula|rule|algorithm)\b/i.test(
+      sentence,
+    )
   );
+}
+
+function paintingRiskViolations(source: string) {
+  return paragraphs(source).flatMap((paragraph) => {
+    const paragraphSentences = sentences(paragraph);
+
+    return paragraphSentences.filter((sentence, index) => {
+      const risk = paintingRisk(sentence);
+      if (!risk || hasOwnRiskLimit(sentence, risk)) {
+        return false;
+      }
+
+      const nextSentence = paragraphSentences[index + 1];
+      return !(
+        nextSentence &&
+        paintingEvidenceLimit.test(nextSentence) &&
+        hasSpecificRiskReference(nextSentence, risk)
+      );
+    });
+  });
 }
 
 describe.each(contentCases)("$name content evidence contract", ({ file, evidenceLabel }) => {
@@ -169,5 +252,76 @@ describe("painting affirmative claim guard", () => {
     );
 
     expect(paintingRiskViolations(source)).toEqual([]);
+  });
+
+  it("rejects varied affirmative scoring claims while allowing explicit limits", () => {
+    expect(
+      paintingRiskViolations(
+        "The scoring formula is fixed.\n\nA global scoring rule applies everywhere.\n\nThe scoring algorithm is deterministic.",
+      ),
+    ).toEqual([
+      "The scoring formula is fixed.",
+      "A global scoring rule applies everywhere.",
+      "The scoring algorithm is deterministic.",
+    ]);
+    expect(
+      paintingRiskViolations(
+        "The scoring formula is unconfirmed.\n\nNo reliable source confirms a global scoring rule.\n\nThe scoring algorithm is not documented.",
+      ),
+    ).toEqual([]);
+  });
+
+  it("does not let an unrelated limitation excuse another risky detail", () => {
+    expect(
+      paintingRiskViolations(
+        "Press R to paint. The undo method is unconfirmed.",
+      ),
+    ).toEqual(["Press R to paint."]);
+    expect(
+      paintingRiskViolations(
+        "Painting unlocks at level 4, while the undo method is unconfirmed.",
+      ),
+    ).toEqual([
+      "Painting unlocks at level 4, while the undo method is unconfirmed.",
+    ]);
+    expect(
+      paintingRiskViolations(
+        "The scoring formula is fixed, while the undo method is unconfirmed.",
+      ),
+    ).toEqual([
+      "The scoring formula is fixed, while the undo method is unconfirmed.",
+    ]);
+    expect(
+      paintingRiskViolations(
+        "Press R to paint. This control is not officially confirmed.",
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("content parsing locality", () => {
+  it("treats consecutive Markdown list items as separate evidence blocks", () => {
+    const blocks = paragraphs(
+      "- Official source: no fixed control is documented.\n- YouTube source: visible gameplay corroboration only.\n- Community source: not evidence for universal rules.",
+    );
+
+    expect(blocks).toEqual([
+      "- Official source: no fixed control is documented.",
+      "- YouTube source: visible gameplay corroboration only.",
+      "- Community source: not evidence for universal rules.",
+    ]);
+    const videoBlock = blocks.find((block) => block.includes("YouTube"));
+    expect(videoBlock).not.toMatch(/not evidence/i);
+  });
+
+  it("removes multiline imports before counting prose words", () => {
+    expect(
+      cleanedWordCount(`import {
+  FaqList,
+  OtherComponent,
+} from "@/components/content";
+
+One two three.`),
+    ).toBe(3);
   });
 });
