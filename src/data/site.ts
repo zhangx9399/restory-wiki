@@ -17,6 +17,7 @@ export const routes = {
   demo: "/demo/",
   customizeDisplay: "/guide/customize-display/",
   systemRequirements: "/system-requirements/",
+  painting: "/guide/painting/",
 } as const;
 
 export const pageSeo = {
@@ -61,5 +62,12 @@ export const pageSeo = {
     description:
       "Check ReStory's official minimum PC requirements, storage and DirectX needs, and version-labeled VSync and frame-rate troubleshooting advice.",
     h1: "ReStory System Requirements",
+  },
+  painting: {
+    path: routes.painting,
+    title: "ReStory Painting Guide — Airbrush & Color Palettes",
+    description:
+      "Learn what the Airbrush and color palettes do in ReStory, how painting differs from shop customization, and which painting details remain unconfirmed.",
+    h1: "ReStory Painting Guide",
   },
 } as const;
