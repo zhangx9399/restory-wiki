@@ -180,6 +180,75 @@ const evidenceLanguageRegressions = [
   },
 ] as const;
 
+const claimParserRegressions = [
+  {
+    name: "copular fixed contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but is fixed at 20%.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "future always return contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but will always return 20%.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "copular guaranteed contradiction",
+    contractName: "missing joystick",
+    source: "The universal fix is unconfirmed but is guaranteed to work.",
+    violatingDetails: ["universal fix"],
+  },
+  {
+    name: "repeated subject contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but this formula guarantees 20%.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "decimal return contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but returns a 20.5% margin.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "plural copular qualifier",
+    contractName: "device selling",
+    source: "The profit formulas are unconfirmed.",
+    violatingDetails: [],
+  },
+  {
+    name: "plural replacement qualifier",
+    contractName: "missing joystick",
+    source: "Replacement spawns are not guaranteed.",
+    violatingDetails: [],
+  },
+  {
+    name: "uppercase hyphen plural qualifier",
+    contractName: "device selling",
+    source: "The PROFIT-FORMULAS are UNCONFIRMED.",
+    violatingDetails: [],
+  },
+  {
+    name: "shared plural qualifier",
+    contractName: "device selling",
+    source: "The profit formula and fixed margin are unconfirmed.",
+    violatingDetails: [],
+  },
+  {
+    name: "instructional always wording",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but always check current values.",
+    violatingDetails: [],
+  },
+  {
+    name: "unsafe fixed assumptions wording",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but fixed assumptions are unsafe.",
+    violatingDetails: [],
+  },
+] as const;
+
 const riskLanguageCases = [
   {
     contractName: "device selling",
@@ -328,16 +397,24 @@ type RiskOccurrence = Readonly<{
   end: number;
 }>;
 
+function riskSpellings(detail: string) {
+  const words = detail.split(" ");
+  const lastWord = words.at(-1)!;
+  const pluralLastWord = lastWord === "fix" ? "fixes" : `${lastWord}s`;
+  const plural = [...words.slice(0, -1), pluralLastWord].join(" ");
+
+  return [
+    detail,
+    plural,
+    detail.replaceAll(" ", "-"),
+    plural.replaceAll(" ", "-"),
+  ];
+}
+
 function riskOccurrences(claim: string, details: readonly string[]) {
   return details
     .flatMap((detail): RiskOccurrence[] => {
-      const definition = riskLanguageCases.find(
-        (riskCase) => riskCase.detail === detail,
-      );
-      if (!definition) {
-        throw new Error(`Missing language definition for risk: ${detail}`);
-      }
-      const variants = [...definition.variants]
+      const variants = riskSpellings(detail)
         .sort((left, right) => right.length - left.length)
         .map(escapeRegExp)
         .join("|");
@@ -352,14 +429,14 @@ function riskOccurrences(claim: string, details: readonly string[]) {
     .sort((left, right) => left.start - right.start);
 }
 
-function directLimitLength(suffix: string) {
+function qualifierLengthAfterRisk(suffix: string) {
   const state = `(?:${evidenceLimitState})`;
   const linkedState = [
     state,
-    `(?:is|remains)\\s+${state}`,
-    String.raw`has\s+no\s+official\s+confirmation`,
-    String.raw`isn['’]t\s+(?:officially\s+)?(?:confirmed|documented|guaranteed|supported)`,
-    `(?:but|and)\\s+(?:(?:is|remains)\\s+)?${state}`,
+    `(?:is|are|remain|remains)\\s+${state}`,
+    String.raw`(?:has|have)\s+no\s+official\s+confirmation`,
+    String.raw`(?:isn['’]t|aren['’]t)\s+(?:officially\s+)?(?:confirmed|documented|guaranteed|supported)`,
+    `(?:but|and)\\s+(?:(?:is|are|remain|remains)\\s+)?${state}`,
   ].join("|");
   const match = suffix.match(
     new RegExp(
@@ -371,7 +448,7 @@ function directLimitLength(suffix: string) {
   return match?.[0].length;
 }
 
-function hasImmediatePrefixLimit(prefix: string, detail: string) {
+function hasQualifierImmediatelyBeforeRisk(prefix: string, detail: string) {
   const sharedLimits = [
     String.raw`(?:there\s+is\s+)?no\s+reliable\s+evidence\s+for\s+(?:an?|the)?\s*$`,
     String.raw`(?:there\s+is\s+)?no\s+(?:officially\s+)?confirmed\s+(?:current\s+)?$`,
@@ -389,49 +466,134 @@ function hasImmediatePrefixLimit(prefix: string, detail: string) {
   );
 }
 
-function hasContradictoryAffirmation(tail: string) {
-  const affirmation = [
-    String.raw`always\b`,
-    String.raw`guarantee(?:s|d)?\b`,
-    String.raw`fixed\b`,
-    String.raw`twice\b`,
-    String.raw`(?:returns?|yields?|promises?)\s+(?:a\s+)?\d+(?:\.\d+)?\s*%`,
-    String.raw`\d+(?:\.\d+)?\s*%\s*(?:return|margin|profit|value)?\b`,
-  ].join("|");
-
-  return new RegExp(
-    `^\\s*(?:[;,–—-]\\s*)?(?:(?:but|and|yet|however)\\s+)?(?:still\\s+)?(?:it\\s+)?(?:${affirmation})`,
-    "i",
-  ).test(tail);
+function isRiskListConnector(source: string) {
+  return /^\s*(?:,\s*(?:and\s+)?|and\s+)(?:the|an?)?\s*$/i.test(source);
 }
 
-function evidenceClauses(source: string) {
-  return sentences(source);
+type RiskQualification = Readonly<{
+  through: number;
+  groupEnd: number;
+}>;
+
+function qualificationForOccurrence(
+  claim: string,
+  occurrences: readonly RiskOccurrence[],
+  index: number,
+): RiskQualification | undefined {
+  const occurrence = occurrences[index];
+  const directLength = qualifierLengthAfterRisk(claim.slice(occurrence.end));
+  if (directLength !== undefined) {
+    return { through: occurrence.end + directLength, groupEnd: index };
+  }
+
+  if (
+    hasQualifierImmediatelyBeforeRisk(
+      claim.slice(0, occurrence.start),
+      occurrence.detail,
+    )
+  ) {
+    return { through: occurrence.end, groupEnd: index };
+  }
+
+  let groupEnd = index;
+  while (
+    occurrences[groupEnd + 1] &&
+    isRiskListConnector(
+      claim.slice(occurrences[groupEnd].end, occurrences[groupEnd + 1].start),
+    )
+  ) {
+    groupEnd += 1;
+  }
+  if (groupEnd === index) {
+    return undefined;
+  }
+
+  const finalOccurrence = occurrences[groupEnd];
+  const sharedLength = qualifierLengthAfterRisk(
+    claim.slice(finalOccurrence.end),
+  );
+  return sharedLength === undefined
+    ? undefined
+    : { through: finalOccurrence.end + sharedLength, groupEnd };
+}
+
+function predicateAfterQualifier(tail: string, detail: string) {
+  let predicate = tail.trimStart();
+  predicate = predicate.replace(/^[,;–—-]\s*/, "");
+  predicate = predicate.replace(/^(?:but|and|yet|however)\s+/i, "");
+  predicate = predicate.replace(/^still\s+/i, "");
+
+  const lastWord = detail.split(" ").at(-1)!;
+  const subjectNouns = [
+    lastWord,
+    lastWord === "fix" ? "fixes" : `${lastWord}s`,
+    "mechanic",
+    "mechanics",
+    "method",
+    "methods",
+  ]
+    .map(escapeRegExp)
+    .join("|");
+  predicate = predicate.replace(
+    new RegExp(`^(?:it|(?:this|that|the)\\s+(?:${subjectNouns}))\\s+`, "i"),
+    "",
+  );
+
+  return predicate;
+}
+
+function hasRiskPredicateContradiction(tail: string, detail: string) {
+  const predicate = predicateAfterQualifier(tail, detail);
+  const guaranteePredicate = [
+    /^guarantee(?:s|d)?\b/i,
+    /^(?:is|are)\s+guaranteed\b/i,
+    /^(?:will|can)\s+(?:be\s+guaranteed|guarantee)\b/i,
+  ];
+  const fixedPredicate = [
+    /^fixed\s+(?:at|to|by)\b/i,
+    /^(?:is|are)\s+fixed\b/i,
+    /^(?:will|can)\s+be\s+fixed\b/i,
+  ];
+  const alwaysPredicate = [
+    /^always\s+(?:appear|appears|guarantee|guarantees|return|returns|yield|yields|work|works|cost|costs|spawn|spawns)\b/i,
+    /^(?:will|can)\s+always\s+(?:appear|guarantee|return|yield|work|cost|spawn)\b/i,
+  ];
+  const numericReturnPredicate = [
+    /^(?:(?:will|can)\s+)?(?:return|returns|yield|yields|promise|promises)\s+(?:a\s+)?\d+(?:\.\d+)?\s*%/i,
+    /^\d+(?:\.\d+)?\s*%\s*(?:return|margin|profit|value)\b/i,
+  ];
+
+  return [
+    ...guaranteePredicate,
+    ...fixedPredicate,
+    ...alwaysPredicate,
+    ...numericReturnPredicate,
+  ].some((pattern) => pattern.test(predicate));
 }
 
 function riskClaimViolations(source: string, details: readonly string[]) {
   return paragraphs(source).flatMap((paragraph) =>
-    evidenceClauses(paragraph).flatMap((claim) => {
+    sentences(paragraph).flatMap((claim) => {
       const occurrences = riskOccurrences(claim, details);
 
       return occurrences.flatMap((occurrence, index) => {
-        const prefix = claim.slice(0, occurrence.start);
-        const suffix = claim.slice(occurrence.end);
-        const directLength = directLimitLength(suffix);
-        const hasPrefixLimit = hasImmediatePrefixLimit(prefix, occurrence.detail);
-
-        if (directLength === undefined && !hasPrefixLimit) {
+        const qualification = qualificationForOccurrence(
+          claim,
+          occurrences,
+          index,
+        );
+        if (!qualification) {
           return [{ detail: occurrence.detail, claim }];
         }
 
-        const qualifiedThrough =
-          directLength === undefined
-            ? occurrence.end
-            : occurrence.end + directLength;
-        const nextOccurrenceStart = occurrences[index + 1]?.start ?? claim.length;
-        const affirmationTail = claim.slice(qualifiedThrough, nextOccurrenceStart);
+        const nextOccurrenceStart =
+          occurrences[qualification.groupEnd + 1]?.start ?? claim.length;
+        const predicateTail = claim.slice(
+          qualification.through,
+          nextOccurrenceStart,
+        );
 
-        return hasContradictoryAffirmation(affirmationTail)
+        return hasRiskPredicateContradiction(predicateTail, occurrence.detail)
           ? [{ detail: occurrence.detail, claim }]
           : [];
       });
@@ -440,7 +602,34 @@ function riskClaimViolations(source: string, details: readonly string[]) {
 }
 
 function sentences(source: string) {
-  return source.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [];
+  const results: string[] = [];
+  let sentenceStart = 0;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (!".!?".includes(character)) {
+      continue;
+    }
+    if (
+      character === "." &&
+      /\d/.test(source[index - 1] ?? "") &&
+      /\d/.test(source[index + 1] ?? "")
+    ) {
+      continue;
+    }
+
+    const sentence = source.slice(sentenceStart, index + 1).trim();
+    if (sentence) {
+      results.push(sentence);
+    }
+    sentenceStart = index + 1;
+  }
+
+  const remainder = source.slice(sentenceStart).trim();
+  if (remainder) {
+    results.push(remainder);
+  }
+  return results;
 }
 
 function clauses(source: string) {
@@ -840,6 +1029,15 @@ describe("risk language variants", () => {
     ({ contractName, detail, source, violates }) => {
       expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
         violates ? [{ detail, claim: source }] : [],
+      );
+    },
+  );
+
+  it.each(claimParserRegressions)(
+    "$name: $source",
+    ({ contractName, source, violatingDetails }) => {
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
+        violatingDetails.map((detail) => ({ detail, claim: source })),
       );
     },
   );
