@@ -96,6 +96,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section gameplay-section">
+        <div className="shell">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Watch the game</p>
+              <h2>See ReStory in Action</h2>
+              <p>
+                Watch 20 minutes of real ReStory gameplay, including device
+                repairs, shop management, and the cozy mid-2000s Tokyo
+                atmosphere.
+              </p>
+            </div>
+          </div>
+
+          <div className="gameplay-video">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/6xYOrUsTFWg"
+              title="ReStory: Chill Electronics Repairs - 20 Minutes of Gameplay"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+
+          <div className="actions">
+            <Link className="action action-primary" href={routes.beginner}>
+              Start the Beginner Guide
+            </Link>
+            <a
+              className="action"
+              href={siteConfig.steamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Play on Steam ↗
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="section section-soft">
         <div className="shell">
           <div className="section-heading">

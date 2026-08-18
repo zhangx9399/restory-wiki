@@ -40,24 +40,102 @@ describe("HomePage", () => {
 
   it("renders the required hero structure and safe calls to action", () => {
     const { container } = render(<HomePage />);
+    const hero = container.querySelector<HTMLElement>("section.hero");
 
-    expect(container.querySelector("section.hero > div.shell.hero-grid")).toBeInTheDocument();
+    expect(hero?.querySelector("div.shell.hero-grid")).toBeInTheDocument();
     expect(container.querySelector("p.hero-copy")).toHaveTextContent(
       "Find source-checked walkthroughs, demo details, repair help, customization notes, and troubleshooting for ReStory.",
     );
-    expect(screen.getByRole("link", { name: "Start the Beginner Guide" })).toHaveAttribute(
-      "href",
-      "/guide/beginner",
-    );
-    expect(screen.getByRole("link", { name: "Explore Repair Guides" })).toHaveAttribute(
-      "href",
-      "/guide/how-to-clean",
-    );
+    expect(
+      within(hero as HTMLElement).getByRole("link", { name: "Start the Beginner Guide" }),
+    ).toHaveAttribute("href", "/guide/beginner");
+    expect(
+      within(hero as HTMLElement).getByRole("link", { name: "Explore Repair Guides" }),
+    ).toHaveAttribute("href", "/guide/how-to-clean");
 
-    const steamLink = screen.getByRole("link", { name: "Play on Steam ↗" });
+    const steamLink = within(hero as HTMLElement).getByRole("link", { name: "Play on Steam ↗" });
     expect(steamLink).toHaveAttribute("href", siteConfig.steamUrl);
     expect(steamLink).toHaveAttribute("target", "_blank");
     expect(steamLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("places the approved gameplay video after the hero and before the guide matrix", () => {
+    const { container } = render(<HomePage />);
+
+    const hero = container.querySelector<HTMLElement>("section.hero");
+    const videoSection = container.querySelector<HTMLElement>("section.gameplay-section");
+    const guideSection = screen
+      .getByRole("heading", { level: 2, name: "Your ReStory repair route" })
+      .closest("section");
+
+    expect(hero).toBeInTheDocument();
+    expect(videoSection).toBeInTheDocument();
+    expect(guideSection).toBeInTheDocument();
+    expect(hero?.compareDocumentPosition(videoSection as HTMLElement)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(videoSection?.compareDocumentPosition(guideSection as HTMLElement)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(
+      within(videoSection as HTMLElement).getByText("Watch the game", {
+        selector: ".eyebrow",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(videoSection as HTMLElement).getByRole("heading", {
+        level: 2,
+        name: "See ReStory in Action",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(videoSection as HTMLElement).getByText(
+        "Watch 20 minutes of real ReStory gameplay, including device repairs, shop management, and the cozy mid-2000s Tokyo atmosphere.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("embeds the selected IGN gameplay video with safe lazy-loaded player settings", () => {
+    const { container } = render(<HomePage />);
+    const videoSection = container.querySelector<HTMLElement>("section.gameplay-section");
+    const player = within(videoSection as HTMLElement).getByTitle(
+      "ReStory: Chill Electronics Repairs - 20 Minutes of Gameplay",
+    );
+
+    expect(player).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/6xYOrUsTFWg",
+    );
+    expect(player).toHaveAttribute("loading", "lazy");
+    expect(player).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    expect(player).toHaveAttribute(
+      "allow",
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+    );
+    expect(player).toHaveAttribute("allowfullscreen");
+    expect(player.getAttribute("src")).not.toContain("autoplay=1");
+
+    expect(
+      within(videoSection as HTMLElement).getByRole("link", {
+        name: "Start the Beginner Guide",
+      }),
+    ).toHaveAttribute("href", routes.beginner.slice(0, -1));
+
+    const steamLink = within(videoSection as HTMLElement).getByRole("link", {
+      name: "Play on Steam ↗",
+    });
+    expect(steamLink).toHaveAttribute("href", siteConfig.steamUrl);
+    expect(steamLink).toHaveAttribute("target", "_blank");
+    expect(steamLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("keeps the gameplay player responsive at a 16:9 aspect ratio", () => {
+    expect(css).toMatch(
+      /\.gameplay-video\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9\s*;[^}]*overflow:\s*hidden\s*;/,
+    );
+    expect(css).toMatch(
+      /\.gameplay-video iframe\s*\{[^}]*width:\s*100%\s*;[^}]*height:\s*100%\s*;[^}]*border:\s*0\s*;/,
+    );
   });
 
   it("uses the approved section labels and introductory copy", () => {

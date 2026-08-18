@@ -502,6 +502,23 @@ p.hero-copy,
   color: var(--muted);
 }
 
+.gameplay-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  background: var(--ink);
+  box-shadow: 10px 10px 0 var(--yellow), 13px 13px 0 var(--ink);
+}
+
+.gameplay-video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .guide-grid {
   display: grid;
   gap: 1rem;
