@@ -13,6 +13,7 @@ const expectedRoutes = {
   systemRequirements: "/system-requirements/",
   painting: "/guide/painting/",
   beginner: "/guide/beginner/",
+  howToSellDevices: "/guide/how-to-sell-devices/",
 } as const;
 
 describe("SEO validation rules", () => {

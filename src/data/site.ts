@@ -19,6 +19,7 @@ export const routes = {
   systemRequirements: "/system-requirements/",
   painting: "/guide/painting/",
   beginner: "/guide/beginner/",
+  howToSellDevices: "/guide/how-to-sell-devices/",
 } as const;
 
 export const pageSeo = {
@@ -77,5 +78,12 @@ export const pageSeo = {
     description:
       "Start ReStory with a practical first repair route, cleaning and reassembly basics, shop priorities, time management, and evidence-labeled next steps.",
     h1: "ReStory Beginner Guide",
+  },
+  howToSellDevices: {
+    path: routes.howToSellDevices,
+    title: "How to Sell Devices in ReStory — Safe Profit Guide",
+    description:
+      "Learn how to inspect, repair, price, and sell devices in ReStory while tracking costs, avoiding unsupported profit claims, and using evidence safely.",
+    h1: "How to Sell Devices in ReStory",
   },
 } as const;
