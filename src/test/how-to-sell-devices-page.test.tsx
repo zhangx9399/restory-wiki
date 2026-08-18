@@ -220,28 +220,22 @@ describe.skipIf(!featureFilesExist)("device selling metadata and page shell", ()
       name: "Related guides",
     });
     expect(
-      within(related).getAllByRole("link").map((link) => link.textContent),
+      within(related).getAllByRole("link").map((link) => ({
+        label: link.textContent,
+        href: link.getAttribute("href"),
+      })),
     ).toEqual([
-      "Beginner Guide",
-      "Demo Guide",
-      "Cleaning Guide",
-      "Customize Display Guide",
-      "System Requirements",
+      { label: "Beginner Guide", href: "/guide/beginner" },
+      { label: "Demo Guide", href: "/demo" },
+      { label: "Cleaning Guide", href: "/guide/how-to-clean" },
+      { label: "Customize Display Guide", href: "/guide/customize-display" },
+      { label: "System Requirements", href: "/system-requirements" },
     ]);
 
     const pageSource = readFileSync(
       join(process.cwd(), "src/app/guide/how-to-sell-devices/page.tsx"),
       "utf8",
     );
-    for (const routeKey of [
-      "beginner",
-      "demo",
-      "cleaning",
-      "customizeDisplay",
-      "systemRequirements",
-    ]) {
-      expect(pageSource).toContain(`href={routes.${routeKey}}`);
-    }
     expect(pageSource).not.toMatch(/missingJoystick|missing-joystick/);
   });
 });
