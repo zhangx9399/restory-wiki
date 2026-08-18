@@ -20,6 +20,7 @@ export const routes = {
   painting: "/guide/painting/",
   beginner: "/guide/beginner/",
   howToSellDevices: "/guide/how-to-sell-devices/",
+  missingJoystick: "/guide/missing-joystick/",
 } as const;
 
 export const pageSeo = {
@@ -85,5 +86,12 @@ export const pageSeo = {
     description:
       "Learn how to inspect, repair, price, and sell devices in ReStory while tracking costs, avoiding unsupported profit claims, and using evidence safely.",
     h1: "How to Sell Devices in ReStory",
+  },
+  missingJoystick: {
+    path: routes.missingJoystick,
+    title: "ReStory Missing Joystick Guide — Safe Fixes",
+    description:
+      "Troubleshoot a missing joystick in ReStory by checking boxes, shelves, assembly state, inputs, and session issues without treating reports as guarantees.",
+    h1: "ReStory Missing Joystick Guide",
   },
 } as const;

@@ -1,0 +1,71 @@
+import { FaqList } from "@/components/faq-list";
+import { missingJoystickFaqItems } from "@/data/missing-joystick";
+
+<div className="quick-answer">
+
+**Quick answer:** Decide whether the whole joystick, a loose component, or only interaction is missing. Check the device, parts box, and visible work area; confirm selection, assembly state, and the prompt; then test input and session behavior. A December 2025 Steam discussion offers player-reported examples, but no location or restart is guaranteed in the current build.
+
+</div>
+
+## What Missing Joystick Can Mean
+
+“Missing joystick” can describe different failures. The second device may no longer look like a complete controller, a component may be outside the current view, or a visible object may not respond to selection. First, identify whether the complete device became a box, whether one part is absent from the assembly, or whether the object is present but cannot be picked up. That distinction prevents an input problem from being mistaken for lost inventory.
+
+The official Atari devlog describes the in-game CX40 structure as four screws, a motherboard, joystick, top and bottom casing, red button, and power cables. That list helps you name what is missing; it does not establish the location of a missing item or diagnose a bug. The devlog also says one motherboard-to-cable detail was simplified, so a real-hardware teardown should not be treated as an exact in-game troubleshooting script.
+
+## Check the Device, Parts, and Work Area
+
+Next, inspect the visible shelf, the parts box, and the right side of the work area without moving unrelated objects. In the cited December 2025 discussion, players reported that a touched joystick could appear as a box on a right shelf or the right side of the table, while an untouched device could remain visible as a joystick. Those are player reports from that discussion, not a guaranteed location and not universal current behavior.
+
+Rotate the view carefully and read labels before concluding that an object vanished. Check whether a box represents the device you already started rather than a new package. Account for the loose pieces you can see and compare them with the official component list, but do not assume the list proves which piece the current job expects. A replacement spawn is unconfirmed for an item that cannot be found; a new box should not be promised.
+
+## Recheck Selection and Assembly State
+
+Then recheck selection and the assembly state shown by the current interface. Select the device or box once, pause, and read the active prompt. If you removed a screw or component, verify whether the game has shifted from handling a complete device to handling its contained parts. Return loose parts only through the action the current prompt actually offers.
+
+Do not copy a rapid click pattern from a video or comment. There is no officially confirmed fixed input sequence, and a sequence that appeared to work in one build is not guaranteed in another. If a part is visible but the highlight, cursor, or prompt never changes, record that as an interaction symptom. It is different evidence from a physically absent part and belongs in a useful bug report.
+
+## Input and Session Troubleshooting
+
+Only after those physical checks should you test interaction and session behavior. Release held buttons, move the pointer away and back, and try one deliberate selection. If you use a controller, test the same visible target with mouse and keyboard; otherwise, avoid remapping everything at once. One controlled comparison tells you more than repeated clicking.
+
+If the result is unchanged, capture a screenshot of the work area and note the job, object state, prompt, and control method. A restart appears in the December 2025 thread as a last-resort player-reported step that helped some posters, but it is not guaranteed and is not an official resolution. Preserve your existing save, exit normally if you choose to try it, and never assume a restart performs a save repair or guarantees recovery.
+
+## What Player Reports Can and Cannot Prove
+
+The discussion contains several scenarios rather than one verified mechanic. One player reported a box or joystick on a right shelf or right table in December 2025. Another reported that restarting made the missing object visible. A later poster reported discovering that the device had become a box and was placed to the right, so their case was not a bug. These reports show useful possibilities, not a universal diagnosis.
+
+No developer-tagged reply in that thread confirms a cause or fix. A post can help you decide where to look or what details to record, but it does not guarantee a location, replacement behavior, or a current patch outcome. Treat comments as Grade C evidence: player observations, not support documentation.
+
+## When to Stop Repeating the Same Fix
+
+Stop repeating an action after one careful retry gives the same result. More clicks can obscure which state produced the problem, and repeated reassembly can create a second uncertainty. Instead, preserve the scene, capture the prompt and visible parts, and write down what happened immediately before the object seemed to disappear.
+
+The risky shortcuts have clear limits: a **guaranteed location is not confirmed**, a **replacement spawn is unconfirmed**, a **fixed input sequence is not guaranteed**, a **save repair has no official confirmation**, and a **universal fix is not supported**. Do not remove, overwrite, or otherwise force changes to save data. If the state blocks progress, send a focused report through the game's current support or community channel and include your build number when available.
+
+## Missing Joystick Checklist
+
+1. Decide whether the complete device, one component, or only interaction is missing.
+2. Check whether the device has changed into a parts box.
+3. Inspect the visible work area and account for loose components.
+4. Read the current selection, assembly, and job prompts.
+5. Try one deliberate selection with the normal control method.
+6. Compare another control method only if the object is visible but unresponsive.
+7. Capture the scene, prompt, job, controls, and build number.
+8. Stop after one careful retry instead of looping the same action.
+9. Treat the December 2025 location and restart examples as player-reported, not guaranteed.
+10. Preserve save data and report a persistent blocker with evidence.
+
+This order separates observation from intervention. It also leaves a clear record if you need help, while avoiding claims that an older player outcome must work today.
+
+## Frequently Asked Questions
+
+<FaqList items={missingJoystickFaqItems} />
+
+## Sources and Evidence Notes
+
+- **Grade A — Official announcement:** <a href="https://steamcommunity.com/games/3812600/announcements/detail/526493182068785306" target="_blank" rel="noopener noreferrer">the official Atari devlog</a> says the compared CX40 versions contain four screws, a motherboard, joystick, top and bottom casing, red button, and power cables, with one motherboard-to-cable detail simplified for the game. It does not document a missing-item bug, location, or fix.
+- **Grade A — Official source:** <a href="https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/" target="_blank" rel="noopener noreferrer">the current ReStory Steam store page</a> establishes the repair-shop loop, device disassembly and restoration, spare-parts browsing, and customer work. It does not publish a joystick recovery procedure.
+- **Grade C — Player report:** <a href="https://steamcommunity.com/app/3812600/discussions/1/750542279460079428/" target="_blank" rel="noopener noreferrer">the December 2025 Steam discussion</a> contains player-reported shelf and right-table examples, restart outcomes, and one poster's discovery of a box rather than a bug. It is not an official resolution, and its reports are not guaranteed for the current build.
+
+Official material establishes the device structure and general repair context. The discussion supplies report-only examples with conflicting scenarios. None of these sources confirms a current universal fix. Evidence reviewed: Aug 18, 2026.

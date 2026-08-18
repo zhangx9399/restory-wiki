@@ -14,6 +14,7 @@ const expectedRoutes = {
   painting: "/guide/painting/",
   beginner: "/guide/beginner/",
   howToSellDevices: "/guide/how-to-sell-devices/",
+  missingJoystick: "/guide/missing-joystick/",
 } as const;
 
 describe("SEO validation rules", () => {
