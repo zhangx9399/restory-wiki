@@ -314,13 +314,17 @@ describe.skipIf(!featureFilesExist)("beginner real MDX content contract", () => 
     expect(new Set(sourceHrefs).size).toBe(9);
   });
 
-  it("contains 900–1,200 cleaned English words", () => {
+  it("contains 900–1,200 production article words including the visible FAQ", () => {
     const mdx = readFileSync(mdxPath, "utf8");
-    const cleaned = mdx
+    const visibleFaqText = beginnerFaqItems
+      .map(({ question, answer }) => `${question} ${answer}`)
+      .join(" ");
+    const cleaned = `${mdx}\n${visibleFaqText}`
       .replace(/^import .+;$/gm, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
       .replace(/https?:\/\/\S+/g, " ")
+      .replace(/^\s*\d+\.\s+/gm, "")
       .replace(/[#*_`>|{}]/g, " ");
     const words = cleaned.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) ?? [];
     expect(words.length).toBeGreaterThanOrEqual(900);
@@ -354,6 +358,8 @@ describe.skipIf(!featureFilesExist)("beginner real MDX content contract", () => 
   it("attributes shop layout claims to the official launch announcement", () => {
     const mdx = readFileSync(mdxPath, "utf8");
     const launchAnnouncement =
+      "https://store.steampowered.com/news/externalpost/steam_community_announcements/1839676055897780";
+    const genericNewsHub =
       "https://store.steampowered.com/news/app/3812600/view/1839676055897780";
     const customizationSection = mdx
       .split("## Painting and Shop Customization")[1]
@@ -367,6 +373,7 @@ describe.skipIf(!featureFilesExist)("beginner real MDX content contract", () => 
       );
 
     expect(customizationSection).toContain(launchAnnouncement);
+    expect(mdx).not.toContain(genericNewsHub);
     expect(customizationSection).toMatch(/official (?:launch announcement|Steam news)/i);
     expect(sourceNote).toMatch(/Grade A — Official source/);
     expect(sourceNote).toMatch(/walls?.{0,80}shel(?:f|ves).{0,80}storage.{0,80}decorations?/i);

@@ -7,6 +7,7 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { FaqList } from "@/components/faq-list";
+import { howToSellDevicesFaqItems } from "@/data/how-to-sell-devices";
 
 const featurePaths = [
   "src/data/how-to-sell-devices.ts",
@@ -304,26 +305,26 @@ describe.skipIf(!featureFilesExist)("device selling real MDX content contract", 
     expect(new Set(sourceHrefs).size).toBe(9);
   });
 
-  it("contains 900–1,200 cleaned English words", () => {
+  it("contains 900–1,200 production article words including the visible FAQ", () => {
     const mdx = readFileSync(mdxPath, "utf8");
-    const cleaned = mdx
+    const visibleFaqText = howToSellDevicesFaqItems
+      .map(({ question, answer }) => `${question} ${answer}`)
+      .join(" ");
+    const cleaned = `${mdx}\n${visibleFaqText}`
       .replace(/^import .+;$/gm, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
       .replace(/https?:\/\/\S+/g, " ")
+      .replace(/^\s*\d+\.\s+/gm, "")
       .replace(/[#*_`>|{}]/g, " ");
     const words = cleaned.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) ?? [];
     expect(words.length).toBeGreaterThanOrEqual(900);
     expect(words.length).toBeLessThanOrEqual(1200);
   });
 
-  it("uses one shared FAQ source for exactly the three required questions", async () => {
+  it("uses one shared FAQ source for exactly the three required questions", () => {
     const mdx = readFileSync(mdxPath, "utf8");
     const data = readFileSync(dataPath, "utf8");
-    const { howToSellDevicesFaqItems } = await import(
-      "@/data/how-to-sell-devices"
-    );
-
     expect(mdx).toContain('import { FaqList } from "@/components/faq-list";');
     expect(mdx).toContain(
       'import { howToSellDevicesFaqItems } from "@/data/how-to-sell-devices";',
