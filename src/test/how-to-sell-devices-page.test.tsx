@@ -236,6 +236,17 @@ describe.skipIf(!featureFilesExist)("device selling metadata and page shell", ()
       join(process.cwd(), "src/app/guide/how-to-sell-devices/page.tsx"),
       "utf8",
     );
+    const routeBindings = [
+      ["beginner", "/guide/beginner/"],
+      ["demo", "/demo/"],
+      ["cleaning", "/guide/how-to-clean/"],
+      ["customizeDisplay", "/guide/customize-display/"],
+      ["systemRequirements", "/system-requirements/"],
+    ] as const;
+    for (const [routeKey, hardCodedHref] of routeBindings) {
+      expect(pageSource).toContain(`href={routes.${routeKey}}`);
+      expect(pageSource).not.toContain(`href="${hardCodedHref}"`);
+    }
     expect(pageSource).not.toMatch(/missingJoystick|missing-joystick/);
   });
 });
