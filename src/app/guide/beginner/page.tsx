@@ -105,9 +105,11 @@ export default function BeginnerPage() {
               <li>
                 <Link href={routes.systemRequirements}>System Requirements</Link>
               </li>
+              <li>
+                <Link href={routes.howToSellDevices}>How to Sell Devices</Link>
+              </li>
             </ul>
           </nav>
-          {/* Integration handoff: add the selling-devices guide after its shared route is defined. */}
         </article>
 
         <aside className="article-aside" aria-label="Table of contents">

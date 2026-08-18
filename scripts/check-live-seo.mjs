@@ -64,6 +64,33 @@ export const PAGE_EXPECTATIONS = [
     requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
     checkArticlePage: true,
   },
+  {
+    route: "/guide/beginner/",
+    title: "ReStory Beginner Guide — Your First Repair Route",
+    description:
+      "Start ReStory with a practical first repair route, cleaning and reassembly basics, shop priorities, time management, and evidence-labeled next steps.",
+    h1: "ReStory Beginner Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/how-to-sell-devices/",
+    title: "How to Sell Devices in ReStory — Safe Profit Guide",
+    description:
+      "Learn how to inspect, repair, price, and sell devices in ReStory while tracking costs, avoiding unsupported profit claims, and using evidence safely.",
+    h1: "How to Sell Devices in ReStory",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/missing-joystick/",
+    title: "ReStory Missing Joystick Guide — Safe Fixes",
+    description:
+      "Troubleshoot a missing joystick in ReStory by checking boxes, shelves, assembly state, inputs, and session issues without treating reports as guarantees.",
+    h1: "ReStory Missing Joystick Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
 ];
 
 function normalizeText(value) {

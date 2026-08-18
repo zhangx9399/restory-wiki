@@ -35,7 +35,8 @@ export const guideEntries = [
     description:
       "The recommended route through ReStory's first repairs and shop systems.",
     category: "Getting Started",
-    status: "coming-next",
+    href: routes.beginner,
+    status: "published",
   },
   {
     title: "Demo vs Full Game",
@@ -65,7 +66,8 @@ export const guideEntries = [
     description:
       "Compare parts costs before repairing and reselling marketplace devices.",
     category: "Shop & Customization",
-    status: "coming-next",
+    href: routes.howToSellDevices,
+    status: "published",
   },
   {
     title: "Customize Your Shop",
@@ -88,6 +90,7 @@ export const guideEntries = [
     description:
       "Evidence-labeled reports and safe troubleshooting without invented fixes.",
     category: "Technical Help",
-    status: "coming-next",
+    href: routes.missingJoystick,
+    status: "published",
   },
 ] as const satisfies readonly GuideEntry[];

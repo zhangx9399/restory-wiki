@@ -109,6 +109,9 @@ export default function HowToSellDevicesPage() {
               <li>
                 <Link href={routes.systemRequirements}>System Requirements</Link>
               </li>
+              <li>
+                <Link href={routes.missingJoystick}>Missing Joystick</Link>
+              </li>
             </ul>
           </nav>
         </article>

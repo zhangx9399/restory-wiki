@@ -52,6 +52,63 @@ function cleanedWordCount(source: string) {
 
 type PaintingRisk = "control" | "unlock" | "scoring";
 
+const articleRiskContracts = [
+  {
+    name: "device selling",
+    file: "how-to-sell-devices.mdx",
+    details: [
+      "profit formula",
+      "fixed margin",
+      "guaranteed price",
+      "demand algorithm",
+      "sale multiplier",
+    ],
+  },
+  {
+    name: "missing joystick",
+    file: "missing-joystick.mdx",
+    details: [
+      "guaranteed location",
+      "replacement spawn",
+      "fixed input sequence",
+      "save repair",
+      "universal fix",
+    ],
+  },
+] as const;
+
+const riskLimit =
+  /not (?:officially )?confirmed|unconfirmed|not guaranteed|no (?:officially )?confirmed|no official confirmation|not supported|not documented|report-only|not universal|never assume|no (?:reliable )?source confirms|none of these sources confirms/i;
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function riskClaimViolations(source: string, details: readonly string[]) {
+  return paragraphs(source).flatMap((paragraph) =>
+    sentences(paragraph).flatMap((sentence) =>
+      sentence
+        .split(/\s*;\s*|\s*,\s*(?:but|while|and)\s+/i)
+        .map((claim) => claim.trim())
+        .filter(Boolean)
+        .flatMap((claim) =>
+          details.flatMap((detail) => {
+            if (!new RegExp(`\\b${escapeRegExp(detail)}\\b`, "i").test(claim)) {
+              return [];
+            }
+
+            const boundLimit = new RegExp(
+              `(?:${escapeRegExp(detail)}\\s+(?:is|remains|has)\\s+(?:${riskLimit.source})|(?:${riskLimit.source})[^.!?;]{0,45}${escapeRegExp(detail)})`,
+              "i",
+            ).test(claim);
+
+            return boundLimit ? [] : [{ detail, claim }];
+          }),
+        ),
+    ),
+  );
+}
+
 function sentences(source: string) {
   return source.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()) ?? [];
 }
@@ -340,6 +397,65 @@ describe("painting affirmative claim guard", () => {
     }
   });
 });
+
+describe.each(articleRiskContracts)(
+  "$name affirmative claim guard",
+  ({ file, details }) => {
+    it.each(details)("requires the %s limitation to bind to that same claim", (detail) => {
+      expect(
+        riskClaimViolations(
+          `The ${detail} is guaranteed. The unrelated recovery method is unconfirmed.`,
+          details,
+        ),
+      ).toEqual([
+        { detail, claim: `The ${detail} is guaranteed.` },
+      ]);
+      expect(
+        riskClaimViolations(
+          `The ${detail} is unconfirmed. The unrelated recovery method is guaranteed.`,
+          details,
+        ),
+      ).toEqual([]);
+    });
+
+    it("keeps every risky article claim locally and specifically limited", () => {
+      const source = readFileSync(join(process.cwd(), "src/content", file), "utf8");
+
+      for (const detail of details) {
+        expect(source.toLowerCase()).toContain(detail);
+      }
+      expect(riskClaimViolations(source, details)).toEqual([]);
+    });
+
+    it("does not borrow a different risky detail's disclaimer", () => {
+      const [unlimitedDetail, limitedDetail] = details;
+      const expectedViolation = [
+        {
+          detail: unlimitedDetail,
+          claim: `The ${unlimitedDetail} is guaranteed`,
+        },
+      ];
+
+      expect(
+        riskClaimViolations(
+          `The ${unlimitedDetail} is guaranteed, while the ${limitedDetail} is unconfirmed.`,
+          details,
+        ),
+      ).toEqual(expectedViolation);
+      expect(
+        riskClaimViolations(
+          `The ${unlimitedDetail} is guaranteed and the ${limitedDetail} is unconfirmed.`,
+          details,
+        ),
+      ).toEqual([
+        {
+          detail: unlimitedDetail,
+          claim: `The ${unlimitedDetail} is guaranteed and the ${limitedDetail} is unconfirmed.`,
+        },
+      ]);
+    });
+  },
+);
 
 describe("content parsing locality", () => {
   it("treats consecutive Markdown list items as separate evidence blocks", () => {

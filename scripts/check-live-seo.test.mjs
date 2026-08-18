@@ -60,6 +60,33 @@ const routeExpectations = [
     requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
     checkArticlePage: true,
   },
+  {
+    route: "/guide/beginner/",
+    title: "ReStory Beginner Guide — Your First Repair Route",
+    description:
+      "Start ReStory with a practical first repair route, cleaning and reassembly basics, shop priorities, time management, and evidence-labeled next steps.",
+    h1: "ReStory Beginner Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/how-to-sell-devices/",
+    title: "How to Sell Devices in ReStory — Safe Profit Guide",
+    description:
+      "Learn how to inspect, repair, price, and sell devices in ReStory while tracking costs, avoiding unsupported profit claims, and using evidence safely.",
+    h1: "How to Sell Devices in ReStory",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
+  {
+    route: "/guide/missing-joystick/",
+    title: "ReStory Missing Joystick Guide — Safe Fixes",
+    description:
+      "Troubleshoot a missing joystick in ReStory by checking boxes, shelves, assembly state, inputs, and session issues without treating reports as guarantees.",
+    h1: "ReStory Missing Joystick Guide",
+    requiredSchemaTypes: ["Article", "BreadcrumbList", "FAQPage"],
+    checkArticlePage: true,
+  },
 ];
 
 const expected = routeExpectations[2];
@@ -414,7 +441,7 @@ describe("public discovery-file audit", () => {
 });
 
 describe("live SEO HTML audit", () => {
-  it("defines the exact SEO contract for all seven public routes", async () => {
+  it("defines the exact SEO contract for all ten public routes", async () => {
     const { PAGE_EXPECTATIONS } = await loadChecker();
 
     expect(PAGE_EXPECTATIONS).toEqual(routeExpectations);
@@ -955,12 +982,12 @@ describe("internal link audit", () => {
 
     const results = await Promise.race([run, testGuard]);
 
-    expect(fetchOptions).toHaveLength(7);
+    expect(fetchOptions).toHaveLength(10);
     expect(fetchOptions.every((options) => options.signal instanceof AbortSignal)).toBe(
       true,
     );
     expect(fetchOptions.every((options) => options.signal.aborted)).toBe(true);
-    expect(results).toHaveLength(7);
+    expect(results).toHaveLength(10);
     expect(results.every((result) => result.status === 0 && !result.valid)).toBe(true);
     expect(
       results.every((result) =>
@@ -1060,7 +1087,7 @@ describe("internal link audit", () => {
 
   it.each([
     ["depth", { maxDepth: 0 }, "crawl-depth-budget", "maxDepth=0"],
-    ["URL", { maxUrls: 7 }, "crawl-url-budget", "maxUrls=7"],
+    ["URL", { maxUrls: 10 }, "crawl-url-budget", "maxUrls=10"],
   ])(
     "reports an actionable %s-budget error instead of silently truncating",
     async (_budget, limits, code, messagePart) => {

@@ -76,7 +76,7 @@ export default function HomePage() {
               customization notes, and troubleshooting for ReStory.
             </p>
             <div className="actions">
-              <Link className="action action-primary" href={routes.guide}>
+              <Link className="action action-primary" href={routes.beginner}>
                 Start the Beginner Guide
               </Link>
               <Link className="action" href={routes.cleaning}>

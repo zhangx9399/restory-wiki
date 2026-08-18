@@ -82,31 +82,27 @@ describe("guide data", () => {
     expect(new Set(guideCategories).size).toBe(guideCategories.length);
   });
 
-  it("publishes the first five real guides at defined routes", () => {
+  it("publishes all eight guides at their defined routes", () => {
     const published = guideEntries.filter(
       (entry) => entry.status === "published",
     );
 
     expect(published.map(({ title, href }) => ({ title, href }))).toEqual([
+      { title: "Beginner Guide", href: routes.beginner },
       { title: "Demo vs Full Game", href: routes.demo },
       { title: "How to Clean Items", href: routes.cleaning },
       { title: "Painting Guide", href: routes.painting },
+      { title: "How to Sell Devices", href: routes.howToSellDevices },
       { title: "Customize Your Shop", href: routes.customizeDisplay },
       { title: "System Requirements", href: routes.systemRequirements },
+      { title: "Missing Joystick", href: routes.missingJoystick },
     ]);
   });
 
-  it("keeps coming-next guides unlinked", () => {
-    const comingNext = guideEntries.filter(
-      (entry) => entry.status === "coming-next",
+  it("has no coming-next guides", () => {
+    expect(guideEntries.every((entry) => entry.status === "published")).toBe(
+      true,
     );
-
-    expect(comingNext.map((entry) => entry.title)).toEqual([
-      "Beginner Guide",
-      "How to Sell Devices",
-      "Missing Joystick",
-    ]);
-    expect(comingNext.every((entry) => !("href" in entry))).toBe(true);
   });
 
   it("links every published guide to a defined route", () => {

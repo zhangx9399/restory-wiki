@@ -57,8 +57,8 @@ export default function GuidePage() {
           <h1>{pageSeo.guide.h1}</h1>
           <p className="hero-copy">
             Start with cleaning and expand into repairs, shop management,
-            customization, and technical help. Published pages are clickable;
-            upcoming topics are clearly labeled.
+            customization, and technical help. Every guide is published and ready
+            to read.
           </p>
         </div>
       </header>

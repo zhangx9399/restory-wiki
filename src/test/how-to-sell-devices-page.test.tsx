@@ -214,7 +214,7 @@ describe.skipIf(!featureFilesExist)("device selling metadata and page shell", ()
     }
   });
 
-  it("uses shared routes for the five required related guides", () => {
+  it("uses shared routes for the six required related guides", () => {
     const { container } = render(<SellingPage />);
     const related = within(container).getByRole("navigation", {
       name: "Related guides",
@@ -230,6 +230,7 @@ describe.skipIf(!featureFilesExist)("device selling metadata and page shell", ()
       { label: "Cleaning Guide", href: "/guide/how-to-clean" },
       { label: "Customize Display Guide", href: "/guide/customize-display" },
       { label: "System Requirements", href: "/system-requirements" },
+      { label: "Missing Joystick", href: "/guide/missing-joystick" },
     ]);
 
     const pageSource = readFileSync(
@@ -242,12 +243,12 @@ describe.skipIf(!featureFilesExist)("device selling metadata and page shell", ()
       ["cleaning", "/guide/how-to-clean/"],
       ["customizeDisplay", "/guide/customize-display/"],
       ["systemRequirements", "/system-requirements/"],
+      ["missingJoystick", "/guide/missing-joystick/"],
     ] as const;
     for (const [routeKey, hardCodedHref] of routeBindings) {
       expect(pageSource).toContain(`href={routes.${routeKey}}`);
       expect(pageSource).not.toContain(`href="${hardCodedHref}"`);
     }
-    expect(pageSource).not.toMatch(/missingJoystick|missing-joystick/);
   });
 });
 

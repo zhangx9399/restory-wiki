@@ -47,7 +47,7 @@ describe("HomePage", () => {
     );
     expect(screen.getByRole("link", { name: "Start the Beginner Guide" })).toHaveAttribute(
       "href",
-      "/guide",
+      "/guide/beginner",
     );
     expect(screen.getByRole("link", { name: "Explore Repair Guides" })).toHaveAttribute(
       "href",
@@ -96,6 +96,11 @@ describe("HomePage", () => {
     ]);
     expect(
       within(featuredGrid as HTMLElement).getByRole("link", {
+        name: /Beginner Guide/i,
+      }),
+    ).toHaveAttribute("href", "/guide/beginner");
+    expect(
+      within(featuredGrid as HTMLElement).getByRole("link", {
         name: /How to Clean Items/i,
       }),
     ).toHaveAttribute("href", "/guide/how-to-clean");
@@ -112,10 +117,7 @@ describe("HomePage", () => {
     const beginnerCard = within(featuredGrid as HTMLElement)
       .getByRole("heading", { level: 3, name: "Beginner Guide" })
       .closest(".guide-card");
-    expect(beginnerCard?.tagName).toBe("DIV");
-    expect(
-      within(beginnerCard as HTMLElement).queryByRole("link"),
-    ).not.toBeInTheDocument();
+    expect(beginnerCard?.tagName).toBe("A");
 
     const browseHeading = within(startSection as HTMLElement).getByRole("heading", {
       level: 3,
@@ -204,7 +206,7 @@ describe("HomePage", () => {
     }
   });
 
-  it("does not link cards for coming-next guides", () => {
+  it("links every guide card in each category tab", () => {
     render(<HomePage />);
 
     const expectedByTab = {
@@ -230,12 +232,8 @@ describe("HomePage", () => {
           .getByRole("heading", { level: 3, name: title })
           .closest(".guide-card");
 
-        if (guide?.status === "coming-next") {
-          expect(card?.tagName).toBe("DIV");
-          expect(within(card as HTMLElement).queryByRole("link")).not.toBeInTheDocument();
-        } else {
-          expect(card?.tagName).toBe("A");
-        }
+        expect(guide?.status).toBe("published");
+        expect(card?.tagName).toBe("A");
       }
     }
   });

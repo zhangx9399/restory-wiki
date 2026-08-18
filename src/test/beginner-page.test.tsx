@@ -228,7 +228,7 @@ describe.skipIf(!featureFilesExist)("beginner metadata and page shell", () => {
     }
   });
 
-  it("uses shared routes for the five currently available related guides", () => {
+  it("uses shared routes for the six related guides", () => {
     const { container } = render(<BeginnerPage />);
     const related = within(container).getByRole("navigation", {
       name: "Related guides",
@@ -244,6 +244,7 @@ describe.skipIf(!featureFilesExist)("beginner metadata and page shell", () => {
       { name: "Painting guide", href: "/guide/painting" },
       { name: "Customize Display guide", href: "/guide/customize-display" },
       { name: "System Requirements", href: "/system-requirements" },
+      { name: "How to Sell Devices", href: "/guide/how-to-sell-devices" },
     ]);
 
     const pageSource = readFileSync(
@@ -256,10 +257,11 @@ describe.skipIf(!featureFilesExist)("beginner metadata and page shell", () => {
       "painting",
       "customizeDisplay",
       "systemRequirements",
+      "howToSellDevices",
     ]) {
       expect(pageSource).toContain(`href={routes.${routeKey}}`);
     }
-    expect(pageSource).not.toMatch(/howToSellDevices|how-to-sell/);
+    expect(pageSource).not.toContain('href="/guide/how-to-sell-devices/"');
   });
 });
 

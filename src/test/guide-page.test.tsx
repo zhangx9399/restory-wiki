@@ -50,7 +50,7 @@ describe("GuidePage", () => {
     })).toBeInTheDocument();
     expect(
       within(hero as HTMLElement).getByText(
-        "Start with cleaning and expand into repairs, shop management, customization, and technical help. Published pages are clickable; upcoming topics are clearly labeled.",
+        "Start with cleaning and expand into repairs, shop management, customization, and technical help. Every guide is published and ready to read.",
         { selector: "p.hero-copy" },
       ),
     ).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe("GuidePage", () => {
     });
   });
 
-  it("shows eight cards with five published links and three inert coming cards", () => {
+  it("shows eight published guide links without Coming Next labels", () => {
     const { container } = render(<GuidePage />);
 
     const cards = Array.from(container.querySelectorAll<HTMLElement>(".guide-card"));
@@ -130,21 +130,18 @@ describe("GuidePage", () => {
 
     const publishedLinks = cards.filter((card) => card.tagName === "A");
     expect(publishedLinks.map((card) => card.getAttribute("href"))).toEqual([
+      "/guide/beginner",
       "/demo",
       "/guide/how-to-clean",
       "/guide/painting",
+      "/guide/how-to-sell-devices",
       "/guide/customize-display",
       "/system-requirements",
+      "/guide/missing-joystick",
     ]);
-
-    const upcomingCards = cards.filter((card) => card.tagName === "DIV");
-    expect(upcomingCards).toHaveLength(3);
-    for (const card of upcomingCards) {
-      const title = card.querySelector("h3")?.textContent;
-      expect(card).toHaveAttribute("aria-label", `${title}, coming next`);
-      expect(within(card).queryByRole("link")).not.toBeInTheDocument();
-      expect(card).toHaveTextContent("Coming next");
-    }
+    expect(publishedLinks).toHaveLength(8);
+    expect(cards.filter((card) => card.tagName === "DIV")).toHaveLength(0);
+    expect(container).not.toHaveTextContent("Coming next");
   });
 
   it("ends with the exact evidence policy note", () => {
