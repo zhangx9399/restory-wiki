@@ -52,7 +52,14 @@ function cleanedWordCount(source: string) {
 
 type PaintingRisk = "control" | "unlock" | "scoring";
 
-const articleRiskContracts = [
+type ArticleRiskContract = Readonly<{
+  name: string;
+  file: string;
+  details: readonly string[];
+  safeExamples: readonly (readonly [detail: string, source: string])[];
+}>;
+
+const articleRiskContracts: readonly ArticleRiskContract[] = [
   {
     name: "device selling",
     file: "how-to-sell-devices.mdx",
@@ -62,6 +69,13 @@ const articleRiskContracts = [
       "guaranteed price",
       "demand algorithm",
       "sale multiplier",
+    ],
+    safeExamples: [
+      ["profit formula", "The profit formula is not officially confirmed."],
+      ["fixed margin", "A fixed margin is not guaranteed."],
+      ["guaranteed price", "A guaranteed price has no official confirmation."],
+      ["demand algorithm", "The demand algorithm is unconfirmed."],
+      ["sale multiplier", "A sale multiplier is not officially confirmed."],
     ],
   },
   {
@@ -74,14 +88,72 @@ const articleRiskContracts = [
       "save repair",
       "universal fix",
     ],
+    safeExamples: [
+      ["guaranteed location", "A guaranteed location is not confirmed."],
+      ["replacement spawn", "A replacement spawn is unconfirmed."],
+      ["fixed input sequence", "A fixed input sequence is not guaranteed."],
+      ["save repair", "A save repair has no official confirmation."],
+      ["universal fix", "A universal fix is not supported."],
+    ],
+  },
+];
+
+const precedingDisclaimerRegressions = [
+  {
+    name: "selling detail before profit formula",
+    contractName: "device selling",
+    detail: "profit formula",
+    source: "The fixed margin is unconfirmed and the profit formula is guaranteed.",
+  },
+  {
+    name: "joystick detail before universal fix",
+    contractName: "missing joystick",
+    detail: "universal fix",
+    source:
+      "The replacement spawn is unconfirmed and the universal fix is guaranteed.",
+  },
+  {
+    name: "unrelated recovery detail before profit formula",
+    contractName: "device selling",
+    detail: "profit formula",
+    source:
+      "The recovery method is unconfirmed and the profit formula is guaranteed.",
   },
 ] as const;
 
 const riskLimit =
-  /not (?:officially )?confirmed|unconfirmed|not guaranteed|no (?:officially )?confirmed|no official confirmation|not supported|not documented|report-only|not universal|never assume|no (?:reliable )?source confirms|none of these sources confirms/i;
+  /not (?:officially )?confirmed|unconfirmed|not guaranteed|no official confirmation|not supported|not documented|report-only|not universal/i;
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasBoundRiskLimit(claim: string, detail: string) {
+  const escapedDetail = escapeRegExp(detail);
+  const detailFirst = new RegExp(
+    `\\b${escapedDetail}\\b\\s+(?:is|remains|has)\\s+(?:${riskLimit.source})`,
+    "i",
+  );
+  const explicitlyUnconfirmedDetail = new RegExp(
+    `\\bno\\s+(?:officially\\s+)?confirmed\\s+(?:current\\s+)?${escapedDetail}\\b`,
+    "i",
+  );
+  const sourceLimit = new RegExp(
+    `\\b(?:no (?:reliable )?source|none of these sources) confirms\\s+(?:a\\s+)?(?:current\\s+)?${escapedDetail}\\b`,
+    "i",
+  );
+  const restartSaveLimit =
+    detail === "save repair" &&
+    /\bnever assume\s+(?:a\s+)?restart\s+performs\s+(?:a\s+)?save repair\b/i.test(
+      claim,
+    );
+
+  return (
+    detailFirst.test(claim) ||
+    explicitlyUnconfirmedDetail.test(claim) ||
+    sourceLimit.test(claim) ||
+    restartSaveLimit
+  );
 }
 
 function riskClaimViolations(source: string, details: readonly string[]) {
@@ -97,12 +169,7 @@ function riskClaimViolations(source: string, details: readonly string[]) {
               return [];
             }
 
-            const boundLimit = new RegExp(
-              `(?:${escapeRegExp(detail)}\\s+(?:is|remains|has)\\s+(?:${riskLimit.source})|(?:${riskLimit.source})[^.!?;]{0,45}${escapeRegExp(detail)})`,
-              "i",
-            ).test(claim);
-
-            return boundLimit ? [] : [{ detail, claim }];
+            return hasBoundRiskLimit(claim, detail) ? [] : [{ detail, claim }];
           }),
         ),
     ),
@@ -400,7 +467,7 @@ describe("painting affirmative claim guard", () => {
 
 describe.each(articleRiskContracts)(
   "$name affirmative claim guard",
-  ({ file, details }) => {
+  ({ file, details, safeExamples }) => {
     it.each(details)("requires the %s limitation to bind to that same claim", (detail) => {
       expect(
         riskClaimViolations(
@@ -426,6 +493,28 @@ describe.each(articleRiskContracts)(
       }
       expect(riskClaimViolations(source, details)).toEqual([]);
     });
+
+    it.each(safeExamples)(
+      "accepts the current article's explicit %s limitation form",
+      (detail, source) => {
+        expect(source.toLowerCase()).toContain(detail);
+        expect(riskClaimViolations(source, details)).toEqual([]);
+      },
+    );
+
+    it.each(details)(
+      "rejects an affirmative %s claim after an unrelated same-sentence disclaimer",
+      (detail) => {
+        const limitedDetail = details.find((candidate) => candidate !== detail);
+        expect(limitedDetail).toBeDefined();
+        const source =
+          `The ${limitedDetail} is unconfirmed and the ${detail} is guaranteed.`;
+
+        expect(riskClaimViolations(source, details)).toEqual([
+          { detail, claim: source },
+        ]);
+      },
+    );
 
     it("does not borrow a different risky detail's disclaimer", () => {
       const [unlimitedDetail, limitedDetail] = details;
@@ -456,6 +545,22 @@ describe.each(articleRiskContracts)(
     });
   },
 );
+
+describe("preceding disclaimer regressions", () => {
+  it.each(precedingDisclaimerRegressions)(
+    "rejects $name",
+    ({ contractName, detail, source }) => {
+      const contract = articleRiskContracts.find(
+        ({ name }) => name === contractName,
+      );
+
+      expect(contract).toBeDefined();
+      expect(riskClaimViolations(source, contract!.details)).toEqual([
+        { detail, claim: source },
+      ]);
+    },
+  );
+});
 
 describe("content parsing locality", () => {
   it("treats consecutive Markdown list items as separate evidence blocks", () => {
