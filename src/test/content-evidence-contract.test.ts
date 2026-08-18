@@ -121,58 +121,321 @@ const precedingDisclaimerRegressions = [
   },
 ] as const;
 
-const riskLimit =
-  /not (?:officially )?confirmed|unconfirmed|not guaranteed|no official confirmation|not supported|not documented|report-only|not universal/i;
+const evidenceLanguageRegressions = [
+  {
+    name: "plural profit formulas",
+    contractName: "device selling",
+    detail: "profit formula",
+    source: "The profit formulas guarantee a 20% return.",
+    violates: true,
+  },
+  {
+    name: "plural replacement spawns",
+    contractName: "missing joystick",
+    detail: "replacement spawn",
+    source: "Replacement spawns always appear on the right.",
+    violates: true,
+  },
+  {
+    name: "hyphenated sale multiplier",
+    contractName: "device selling",
+    detail: "sale multiplier",
+    source: "The sale-multiplier guarantees twice the value.",
+    violates: true,
+  },
+  {
+    name: "qualified then contradictory profit formula",
+    contractName: "device selling",
+    detail: "profit formula",
+    source: "The profit formula is unconfirmed but guarantees 20%.",
+    violates: true,
+  },
+  {
+    name: "colon-qualified profit formula",
+    contractName: "device selling",
+    detail: "profit formula",
+    source: "The profit formula: unconfirmed.",
+    violates: false,
+  },
+  {
+    name: "dash-qualified fixed margin",
+    contractName: "device selling",
+    detail: "fixed margin",
+    source: "The fixed margin — not documented.",
+    violates: false,
+  },
+  {
+    name: "contracted guaranteed price qualifier",
+    contractName: "device selling",
+    detail: "guaranteed price",
+    source: "The guaranteed price isn't confirmed.",
+    violates: false,
+  },
+  {
+    name: "evidence-qualified demand algorithm",
+    contractName: "device selling",
+    detail: "demand algorithm",
+    source: "There is no reliable evidence for a demand algorithm.",
+    violates: false,
+  },
+] as const;
+
+const riskLanguageCases = [
+  {
+    contractName: "device selling",
+    detail: "profit formula",
+    variants: [
+      "profit formula",
+      "profit formulas",
+      "profit-formula",
+      "profit-formulas",
+    ],
+  },
+  {
+    contractName: "device selling",
+    detail: "fixed margin",
+    variants: ["fixed margin", "fixed margins", "fixed-margin", "fixed-margins"],
+  },
+  {
+    contractName: "device selling",
+    detail: "guaranteed price",
+    variants: [
+      "guaranteed price",
+      "guaranteed prices",
+      "guaranteed-price",
+      "guaranteed-prices",
+    ],
+  },
+  {
+    contractName: "device selling",
+    detail: "demand algorithm",
+    variants: [
+      "demand algorithm",
+      "demand algorithms",
+      "demand-algorithm",
+      "demand-algorithms",
+    ],
+  },
+  {
+    contractName: "device selling",
+    detail: "sale multiplier",
+    variants: [
+      "sale multiplier",
+      "sale multipliers",
+      "sale-multiplier",
+      "sale-multipliers",
+    ],
+  },
+  {
+    contractName: "missing joystick",
+    detail: "guaranteed location",
+    variants: [
+      "guaranteed location",
+      "guaranteed locations",
+      "guaranteed-location",
+      "guaranteed-locations",
+    ],
+  },
+  {
+    contractName: "missing joystick",
+    detail: "replacement spawn",
+    variants: [
+      "replacement spawn",
+      "replacement spawns",
+      "replacement-spawn",
+      "replacement-spawns",
+    ],
+  },
+  {
+    contractName: "missing joystick",
+    detail: "fixed input sequence",
+    variants: [
+      "fixed input sequence",
+      "fixed input sequences",
+      "fixed-input-sequence",
+      "fixed-input-sequences",
+    ],
+  },
+  {
+    contractName: "missing joystick",
+    detail: "save repair",
+    variants: ["save repair", "save repairs", "save-repair", "save-repairs"],
+  },
+  {
+    contractName: "missing joystick",
+    detail: "universal fix",
+    variants: ["universal fix", "universal fixes", "universal-fix", "universal-fixes"],
+  },
+] as const;
+
+const qualifierForms = [
+  { name: "colon", render: (risk: string) => `The ${risk}: unconfirmed.` },
+  { name: "em dash", render: (risk: string) => `The ${risk} — not documented.` },
+  { name: "comma", render: (risk: string) => `The ${risk}, not guaranteed.` },
+  {
+    name: "semicolon",
+    render: (risk: string) => `The ${risk}; no official confirmation.`,
+  },
+  { name: "bare but", render: (risk: string) => `The ${risk} but unconfirmed.` },
+  { name: "bare and", render: (risk: string) => `The ${risk} and not documented.` },
+] as const;
+
+const contradictoryForms = [
+  {
+    name: "bare but guarantee",
+    render: (risk: string) =>
+      `The ${risk} is unconfirmed but guarantees a 20% return.`,
+  },
+  {
+    name: "comma but always",
+    render: (risk: string) =>
+      `The ${risk} is unconfirmed, but always appears on the right.`,
+  },
+  {
+    name: "semicolon fixed",
+    render: (risk: string) => `The ${risk} is unconfirmed; fixed at 20%.`,
+  },
+  {
+    name: "em dash numeric return",
+    render: (risk: string) =>
+      `The ${risk} is unconfirmed — returns a 20% margin.`,
+  },
+  {
+    name: "bare and guarantee",
+    render: (risk: string) =>
+      `The ${risk} is unconfirmed and guarantees twice the value.`,
+  },
+] as const;
+
+const evidenceLimitState = [
+  "unconfirmed",
+  String.raw`not\s+(?:officially\s+)?confirmed`,
+  String.raw`not\s+guaranteed`,
+  String.raw`no\s+official\s+confirmation`,
+  String.raw`not\s+supported`,
+  String.raw`not\s+documented`,
+  "report-only",
+  String.raw`not\s+universal`,
+].join("|");
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function hasBoundRiskLimit(claim: string, detail: string) {
-  const escapedDetail = escapeRegExp(detail);
-  const detailFirst = new RegExp(
-    `\\b${escapedDetail}\\b\\s+(?:is|remains|has)\\s+(?:${riskLimit.source})`,
-    "i",
+type RiskOccurrence = Readonly<{
+  detail: string;
+  start: number;
+  end: number;
+}>;
+
+function riskOccurrences(claim: string, details: readonly string[]) {
+  return details
+    .flatMap((detail): RiskOccurrence[] => {
+      const definition = riskLanguageCases.find(
+        (riskCase) => riskCase.detail === detail,
+      );
+      if (!definition) {
+        throw new Error(`Missing language definition for risk: ${detail}`);
+      }
+      const variants = [...definition.variants]
+        .sort((left, right) => right.length - left.length)
+        .map(escapeRegExp)
+        .join("|");
+      const pattern = new RegExp(`\\b(?:${variants})\\b`, "gi");
+
+      return Array.from(claim.matchAll(pattern), (match) => ({
+        detail,
+        start: match.index,
+        end: match.index + match[0].length,
+      }));
+    })
+    .sort((left, right) => left.start - right.start);
+}
+
+function directLimitLength(suffix: string) {
+  const state = `(?:${evidenceLimitState})`;
+  const linkedState = [
+    state,
+    `(?:is|remains)\\s+${state}`,
+    String.raw`has\s+no\s+official\s+confirmation`,
+    String.raw`isn['’]t\s+(?:officially\s+)?(?:confirmed|documented|guaranteed|supported)`,
+    `(?:but|and)\\s+(?:(?:is|remains)\\s+)?${state}`,
+  ].join("|");
+  const match = suffix.match(
+    new RegExp(
+      `^(?:\\s*(?:[:,;]|[-–—])\\s*|\\s+)(?:${linkedState})`,
+      "i",
+    ),
   );
-  const explicitlyUnconfirmedDetail = new RegExp(
-    `\\bno\\s+(?:officially\\s+)?confirmed\\s+(?:current\\s+)?${escapedDetail}\\b`,
-    "i",
-  );
-  const sourceLimit = new RegExp(
-    `\\b(?:no (?:reliable )?source|none of these sources) confirms\\s+(?:a\\s+)?(?:current\\s+)?${escapedDetail}\\b`,
-    "i",
-  );
-  const restartSaveLimit =
-    detail === "save repair" &&
-    /\bnever assume\s+(?:a\s+)?restart\s+performs\s+(?:a\s+)?save repair\b/i.test(
-      claim,
-    );
+
+  return match?.[0].length;
+}
+
+function hasImmediatePrefixLimit(prefix: string, detail: string) {
+  const sharedLimits = [
+    String.raw`(?:there\s+is\s+)?no\s+reliable\s+evidence\s+for\s+(?:an?|the)?\s*$`,
+    String.raw`(?:there\s+is\s+)?no\s+(?:officially\s+)?confirmed\s+(?:current\s+)?$`,
+    String.raw`(?:no\s+(?:reliable\s+)?source|none\s+of\s+these\s+sources)\s+confirms\s+(?:an?\s+)?(?:current\s+)?$`,
+  ];
+  if (sharedLimits.some((source) => new RegExp(source, "i").test(prefix))) {
+    return true;
+  }
 
   return (
-    detailFirst.test(claim) ||
-    explicitlyUnconfirmedDetail.test(claim) ||
-    sourceLimit.test(claim) ||
-    restartSaveLimit
+    detail === "save repair" &&
+    /\bnever\s+assume\s+(?:a\s+)?restart\s+performs\s+(?:a\s+)?$/i.test(
+      prefix,
+    )
   );
+}
+
+function hasContradictoryAffirmation(tail: string) {
+  const affirmation = [
+    String.raw`always\b`,
+    String.raw`guarantee(?:s|d)?\b`,
+    String.raw`fixed\b`,
+    String.raw`twice\b`,
+    String.raw`(?:returns?|yields?|promises?)\s+(?:a\s+)?\d+(?:\.\d+)?\s*%`,
+    String.raw`\d+(?:\.\d+)?\s*%\s*(?:return|margin|profit|value)?\b`,
+  ].join("|");
+
+  return new RegExp(
+    `^\\s*(?:[;,–—-]\\s*)?(?:(?:but|and|yet|however)\\s+)?(?:still\\s+)?(?:it\\s+)?(?:${affirmation})`,
+    "i",
+  ).test(tail);
+}
+
+function evidenceClauses(source: string) {
+  return sentences(source);
 }
 
 function riskClaimViolations(source: string, details: readonly string[]) {
   return paragraphs(source).flatMap((paragraph) =>
-    sentences(paragraph).flatMap((sentence) =>
-      sentence
-        .split(/\s*;\s*|\s*,\s*(?:but|while|and)\s+/i)
-        .map((claim) => claim.trim())
-        .filter(Boolean)
-        .flatMap((claim) =>
-          details.flatMap((detail) => {
-            if (!new RegExp(`\\b${escapeRegExp(detail)}\\b`, "i").test(claim)) {
-              return [];
-            }
+    evidenceClauses(paragraph).flatMap((claim) => {
+      const occurrences = riskOccurrences(claim, details);
 
-            return hasBoundRiskLimit(claim, detail) ? [] : [{ detail, claim }];
-          }),
-        ),
-    ),
+      return occurrences.flatMap((occurrence, index) => {
+        const prefix = claim.slice(0, occurrence.start);
+        const suffix = claim.slice(occurrence.end);
+        const directLength = directLimitLength(suffix);
+        const hasPrefixLimit = hasImmediatePrefixLimit(prefix, occurrence.detail);
+
+        if (directLength === undefined && !hasPrefixLimit) {
+          return [{ detail: occurrence.detail, claim }];
+        }
+
+        const qualifiedThrough =
+          directLength === undefined
+            ? occurrence.end
+            : occurrence.end + directLength;
+        const nextOccurrenceStart = occurrences[index + 1]?.start ?? claim.length;
+        const affirmationTail = claim.slice(qualifiedThrough, nextOccurrenceStart);
+
+        return hasContradictoryAffirmation(affirmationTail)
+          ? [{ detail: occurrence.detail, claim }]
+          : [];
+      });
+    }),
   );
 }
 
@@ -518,18 +781,17 @@ describe.each(articleRiskContracts)(
 
     it("does not borrow a different risky detail's disclaimer", () => {
       const [unlimitedDetail, limitedDetail] = details;
+      const commaSource =
+        `The ${unlimitedDetail} is guaranteed, while the ${limitedDetail} is unconfirmed.`;
       const expectedViolation = [
         {
           detail: unlimitedDetail,
-          claim: `The ${unlimitedDetail} is guaranteed`,
+          claim: commaSource,
         },
       ];
 
       expect(
-        riskClaimViolations(
-          `The ${unlimitedDetail} is guaranteed, while the ${limitedDetail} is unconfirmed.`,
-          details,
-        ),
+        riskClaimViolations(commaSource, details),
       ).toEqual(expectedViolation);
       expect(
         riskClaimViolations(
@@ -556,6 +818,84 @@ describe("preceding disclaimer regressions", () => {
 
       expect(contract).toBeDefined();
       expect(riskClaimViolations(source, contract!.details)).toEqual([
+        { detail, claim: source },
+      ]);
+    },
+  );
+});
+
+describe("risk language variants", () => {
+  function contractDetails(contractName: string) {
+    const contract = articleRiskContracts.find(
+      ({ name }) => name === contractName,
+    );
+    if (!contract) {
+      throw new Error(`Unknown evidence contract: ${contractName}`);
+    }
+    return contract.details;
+  }
+
+  it.each(evidenceLanguageRegressions)(
+    "$name: $source",
+    ({ contractName, detail, source, violates }) => {
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
+        violates ? [{ detail, claim: source }] : [],
+      );
+    },
+  );
+
+  it.each(
+    riskLanguageCases.flatMap(({ contractName, detail, variants }) =>
+      variants.map((variant) => ({ contractName, detail, variant })),
+    ),
+  )("detects the unqualified $variant variant", ({ contractName, detail, variant }) => {
+    const source = `Reports treat ${variant} as guaranteed.`;
+
+    expect(riskClaimViolations(source, contractDetails(contractName))).toEqual([
+      { detail, claim: source },
+    ]);
+  });
+
+  it.each(riskLanguageCases)(
+    "detects uppercase $detail language",
+    ({ contractName, detail, variants }) => {
+      const source = `REPORTS TREAT ${variants[0].toUpperCase()} AS GUARANTEED.`;
+
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual([
+        { detail, claim: source },
+      ]);
+    },
+  );
+
+  it.each(
+    riskLanguageCases.flatMap((riskCase) =>
+      qualifierForms.map(({ name, render }, index) => ({
+        ...riskCase,
+        qualifier: name,
+        source: render(riskCase.variants[index % riskCase.variants.length]),
+      })),
+    ),
+  )(
+    "accepts $qualifier qualification for $detail",
+    ({ contractName, source }) => {
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
+        [],
+      );
+    },
+  );
+
+  it.each(
+    riskLanguageCases.flatMap((riskCase) =>
+      contradictoryForms.map(({ name, render }) => ({
+        ...riskCase,
+        affirmation: name,
+        source: render(riskCase.variants[0]),
+      })),
+    ),
+  )(
+    "rejects $detail followed by a contradictory $affirmation",
+    ({ contractName, detail, source }) => {
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual([
         { detail, claim: source },
       ]);
     },
