@@ -249,6 +249,51 @@ const claimParserRegressions = [
   },
 ] as const;
 
+const finalPredicateRegressions = [
+  {
+    name: "possessive fixed return contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but it has a fixed 20% return.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "produced return contradiction",
+    contractName: "device selling",
+    source: "The profit formula is unconfirmed but produces a 20% return.",
+    violatingDetails: ["profit formula"],
+  },
+  {
+    name: "emphatic guarantee contradiction",
+    contractName: "missing joystick",
+    source: "The fixed input sequence is unconfirmed but does guarantee success.",
+    violatingDetails: ["fixed input sequence"],
+  },
+  {
+    name: "every-time work contradiction",
+    contractName: "missing joystick",
+    source: "The universal fix is unconfirmed but it works every time.",
+    violatingDetails: ["universal fix"],
+  },
+  {
+    name: "every-time appearance contradiction",
+    contractName: "missing joystick",
+    source: "The replacement spawn is unconfirmed but it appears every time.",
+    violatingDetails: ["replacement spawn"],
+  },
+  {
+    name: "copular always contradiction",
+    contractName: "device selling",
+    source: "The demand algorithm is unconfirmed but is always accurate.",
+    violatingDetails: ["demand algorithm"],
+  },
+  {
+    name: "neither-nor shared qualifier",
+    contractName: "device selling",
+    source: "Neither the profit formula nor the fixed margin is confirmed.",
+    violatingDetails: [],
+  },
+] as const;
+
 const riskLanguageCases = [
   {
     contractName: "device selling",
@@ -475,12 +520,60 @@ type RiskQualification = Readonly<{
   groupEnd: number;
 }>;
 
+function neitherNorQualification(
+  claim: string,
+  occurrences: readonly RiskOccurrence[],
+  index: number,
+): RiskQualification | undefined {
+  const norConnector = /^\s+nor\s+(?:the|an?)?\s*$/i;
+  let groupStart = index;
+  let groupEnd = index;
+
+  while (
+    occurrences[groupStart - 1] &&
+    norConnector.test(
+      claim.slice(occurrences[groupStart - 1].end, occurrences[groupStart].start),
+    )
+  ) {
+    groupStart -= 1;
+  }
+  while (
+    occurrences[groupEnd + 1] &&
+    norConnector.test(
+      claim.slice(occurrences[groupEnd].end, occurrences[groupEnd + 1].start),
+    )
+  ) {
+    groupEnd += 1;
+  }
+  if (
+    groupStart === groupEnd ||
+    !/\bneither\s+(?:the|an?)?\s*$/i.test(
+      claim.slice(0, occurrences[groupStart].start),
+    )
+  ) {
+    return undefined;
+  }
+
+  const finalOccurrence = occurrences[groupEnd];
+  const confirmation = claim
+    .slice(finalOccurrence.end)
+    .match(/^\s+(?:is|are|remain|remains)\s+confirmed\b/i);
+  return confirmation
+    ? { through: finalOccurrence.end + confirmation[0].length, groupEnd }
+    : undefined;
+}
+
 function qualificationForOccurrence(
   claim: string,
   occurrences: readonly RiskOccurrence[],
   index: number,
 ): RiskQualification | undefined {
   const occurrence = occurrences[index];
+  const neitherNor = neitherNorQualification(claim, occurrences, index);
+  if (neitherNor) {
+    return neitherNor;
+  }
+
   const directLength = qualifierLengthAfterRisk(claim.slice(occurrence.end));
   if (directLength !== undefined) {
     return { through: occurrence.end + directLength, groupEnd: index };
@@ -546,20 +639,25 @@ function hasRiskPredicateContradiction(tail: string, detail: string) {
   const predicate = predicateAfterQualifier(tail, detail);
   const guaranteePredicate = [
     /^guarantee(?:s|d)?\b/i,
+    /^(?:do|does|did)\s+guarantee\b/i,
     /^(?:is|are)\s+guaranteed\b/i,
     /^(?:will|can)\s+(?:be\s+guaranteed|guarantee)\b/i,
   ];
   const fixedPredicate = [
     /^fixed\s+(?:at|to|by)\b/i,
+    /^(?:has|have)\s+a\s+fixed\s+(?:\d+(?:\.\d+)?\s*%\s*)?(?:return|margin|price|value)\b/i,
     /^(?:is|are)\s+fixed\b/i,
     /^(?:will|can)\s+be\s+fixed\b/i,
   ];
   const alwaysPredicate = [
     /^always\s+(?:appear|appears|guarantee|guarantees|return|returns|yield|yields|work|works|cost|costs|spawn|spawns)\b/i,
     /^(?:will|can)\s+always\s+(?:appear|guarantee|return|yield|work|cost|spawn)\b/i,
+    /^(?:is|are)\s+always\s+(?:accurate|available|fixed|guaranteed|present|successful)\b/i,
+    /^(?:appear|appears|work|works)\s+(?:every\s+time|in\s+every\s+build)\b/i,
   ];
   const numericReturnPredicate = [
     /^(?:(?:will|can)\s+)?(?:return|returns|yield|yields|promise|promises)\s+(?:a\s+)?\d+(?:\.\d+)?\s*%/i,
+    /^(?:produce|produces|deliver|delivers)\s+(?:a\s+)?\d+(?:\.\d+)?\s*%\s+return\b/i,
     /^\d+(?:\.\d+)?\s*%\s*(?:return|margin|profit|value)\b/i,
   ];
 
@@ -1034,6 +1132,15 @@ describe("risk language variants", () => {
   );
 
   it.each(claimParserRegressions)(
+    "$name: $source",
+    ({ contractName, source, violatingDetails }) => {
+      expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
+        violatingDetails.map((detail) => ({ detail, claim: source })),
+      );
+    },
+  );
+
+  it.each(finalPredicateRegressions)(
     "$name: $source",
     ({ contractName, source, violatingDetails }) => {
       expect(riskClaimViolations(source, contractDetails(contractName))).toEqual(
