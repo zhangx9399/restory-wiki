@@ -6,6 +6,9 @@ import rehypeSlug from "rehype-slug";
 import * as jsxRuntime from "react/jsx-runtime";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { FaqList } from "@/components/faq-list";
+import { beginnerFaqItems } from "@/data/beginner";
+
 const featurePaths = [
   "src/data/beginner.ts",
   "src/content/beginner.mdx",
@@ -332,6 +335,53 @@ describe.skipIf(!featureFilesExist)("beginner real MDX content contract", () => 
       expect(data).toContain(item.question);
       expect(data).toContain(item.answer);
     }
+  });
+
+  it("renders the production FAQ component from the shared beginner data", () => {
+    const { container } = render(<FaqList items={beginnerFaqItems} />);
+    const faqList = container.querySelector(".faq-list") as HTMLElement;
+
+    expect(beginnerFaqItems).toEqual(expectedFaq);
+    expect(within(faqList).getAllByRole("group")).toHaveLength(3);
+    for (const item of beginnerFaqItems) {
+      expect(within(faqList).getByText(item.question)).toBeInTheDocument();
+      expect(within(faqList).getByText(item.answer)).toBeInTheDocument();
+    }
+  });
+
+  it("attributes shop layout claims to the official launch announcement", () => {
+    const mdx = readFileSync(mdxPath, "utf8");
+    const launchAnnouncement =
+      "https://store.steampowered.com/news/app/3812600/view/1839676055897780";
+    const customizationSection = mdx
+      .split("## Painting and Shop Customization")[1]
+      ?.split("## Managing Time, Parts, and Customer Work")[0];
+    const sourceNote = mdx
+      .split(/\n- /)
+      .find(
+        (paragraph) =>
+          paragraph.startsWith("**Grade A") &&
+          paragraph.includes(launchAnnouncement),
+      );
+
+    expect(customizationSection).toContain(launchAnnouncement);
+    expect(customizationSection).toMatch(/official (?:launch announcement|Steam news)/i);
+    expect(sourceNote).toMatch(/Grade A — Official source/);
+    expect(sourceNote).toMatch(/walls?.{0,80}shel(?:f|ves).{0,80}storage.{0,80}decorations?/i);
+  });
+
+  it("recommends only published next reads without implementation language", () => {
+    const mdx = readFileSync(mdxPath, "utf8");
+    const readNextSection = mdx
+      .split("## What to Read Next")[1]
+      ?.split("## Frequently Asked Questions")[0];
+
+    expect(readNextSection).not.toMatch(
+      /integration|shared route|hard-code|selling-devices|unavailable/i,
+    );
+    expect(readNextSection).toMatch(
+      /cleaning guide[\s\S]*painting guide[\s\S]*Customize Display[\s\S]*demo guide[\s\S]*System Requirements/i,
+    );
   });
 
   it("links at least three sources safely and labels evidence limits explicitly", () => {
