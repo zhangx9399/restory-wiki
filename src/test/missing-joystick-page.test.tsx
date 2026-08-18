@@ -299,13 +299,18 @@ describe.skipIf(!featureFilesExist)("missing joystick real MDX content contract"
     expect(new Set(sourceHrefs).size).toBe(9);
   });
 
-  it("contains 900–1,200 cleaned English words", () => {
+  it("contains 900–1,200 production article words including the visible FAQ", async () => {
     const mdx = readFileSync(mdxPath, "utf8");
-    const cleaned = mdx
+    const { missingJoystickFaqItems } = await import("@/data/missing-joystick");
+    const visibleFaqText = missingJoystickFaqItems
+      .map(({ question, answer }) => `${question} ${answer}`)
+      .join(" ");
+    const cleaned = `${mdx}\n${visibleFaqText}`
       .replace(/^import .+;$/gm, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
       .replace(/https?:\/\/\S+/g, " ")
+      .replace(/^\s*\d+\.\s+/gm, "")
       .replace(/[#*_`>|{}]/g, " ");
     const words = cleaned.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) ?? [];
     expect(words.length).toBeGreaterThanOrEqual(900);

@@ -9,39 +9,39 @@ import { missingJoystickFaqItems } from "@/data/missing-joystick";
 
 ## What Missing Joystick Can Mean
 
-“Missing joystick” can describe different failures. The second device may no longer look like a complete controller, a component may be outside the current view, or a visible object may not respond to selection. First, identify whether the complete device became a box, whether one part is absent from the assembly, or whether the object is present but cannot be picked up. That distinction prevents an input problem from being mistaken for lost inventory.
+“Missing joystick” may mean the device became a box, a component is out of view, or a visible object will not respond. First, identify whether the whole device became a box, one part is absent, or the object is present but cannot be selected. This separates an input problem from lost inventory.
 
-The official Atari devlog describes the in-game CX40 structure as four screws, a motherboard, joystick, top and bottom casing, red button, and power cables. That list helps you name what is missing; it does not establish the location of a missing item or diagnose a bug. The devlog also says one motherboard-to-cable detail was simplified, so a real-hardware teardown should not be treated as an exact in-game troubleshooting script.
+The official Atari devlog lists the in-game CX40 structure as four screws, a motherboard, joystick, top and bottom casing, red button, and power cables. Use that list to name a missing piece, not to locate it or diagnose a bug. One motherboard-to-cable detail was simplified, so a real teardown is not an exact in-game script.
 
 ## Check the Device, Parts, and Work Area
 
-Next, inspect the visible shelf, the parts box, and the right side of the work area without moving unrelated objects. In the cited December 2025 discussion, players reported that a touched joystick could appear as a box on a right shelf or the right side of the table, while an untouched device could remain visible as a joystick. Those are player reports from that discussion, not a guaranteed location and not universal current behavior.
+Next, inspect the visible shelf, parts box, and right work area. In the December 2025 discussion, players reported that a touched joystick could appear as a box on a right shelf or table, while an untouched device could remain visible. The reported location is not guaranteed, and the behavior is not universal today.
 
-Rotate the view carefully and read labels before concluding that an object vanished. Check whether a box represents the device you already started rather than a new package. Account for the loose pieces you can see and compare them with the official component list, but do not assume the list proves which piece the current job expects. A replacement spawn is unconfirmed for an item that cannot be found; a new box should not be promised.
+Rotate the view and read labels before concluding that an object vanished. Check whether a box represents the device already started, then account for visible loose pieces. The official list does not prove which piece the job expects. A replacement spawn is unconfirmed; do not expect a new box.
 
 ## Recheck Selection and Assembly State
 
-Then recheck selection and the assembly state shown by the current interface. Select the device or box once, pause, and read the active prompt. If you removed a screw or component, verify whether the game has shifted from handling a complete device to handling its contained parts. Return loose parts only through the action the current prompt actually offers.
+Then recheck selection and the current assembly state. Select the device or box once and read the active prompt. If a component was removed, verify whether the game shifted from a complete device to its parts. Use only the action the prompt offers.
 
-Do not copy a rapid click pattern from a video or comment. There is no officially confirmed fixed input sequence, and a sequence that appeared to work in one build is not guaranteed in another. If a part is visible but the highlight, cursor, or prompt never changes, record that as an interaction symptom. It is different evidence from a physically absent part and belongs in a useful bug report.
+Do not copy a rapid click pattern from a video or comment. There is no officially confirmed fixed input sequence, and one build's sequence is not guaranteed in another. If a visible part never highlights or changes the prompt, record an interaction symptom. That differs from a physically absent part.
 
 ## Input and Session Troubleshooting
 
-Only after those physical checks should you test interaction and session behavior. Release held buttons, move the pointer away and back, and try one deliberate selection. If you use a controller, test the same visible target with mouse and keyboard; otherwise, avoid remapping everything at once. One controlled comparison tells you more than repeated clicking.
+Only after those physical checks should you test interaction and session behavior. Release held buttons, move the pointer away and back, and try one deliberate selection. With a controller, compare the same visible target using mouse and keyboard. Avoid changing several settings at once.
 
-If the result is unchanged, capture a screenshot of the work area and note the job, object state, prompt, and control method. A restart appears in the December 2025 thread as a last-resort player-reported step that helped some posters, but it is not guaranteed and is not an official resolution. Preserve your existing save, exit normally if you choose to try it, and never assume a restart performs a save repair or guarantees recovery.
+If nothing changes, capture the work area and note the job, object state, prompt, and controls. A restart is a last-resort player-reported step from December 2025 that helped some posters, but it is not guaranteed or official. Preserve your save, exit normally, and never assume a restart performs a save repair or guarantees recovery.
 
 ## What Player Reports Can and Cannot Prove
 
-The discussion contains several scenarios rather than one verified mechanic. One player reported a box or joystick on a right shelf or right table in December 2025. Another reported that restarting made the missing object visible. A later poster reported discovering that the device had become a box and was placed to the right, so their case was not a bug. These reports show useful possibilities, not a universal diagnosis.
+The discussion contains several scenarios. In December 2025, one player reported a box or joystick on a right shelf or right table; another reported that restarting revealed the object. A later poster reported finding the device as a box to the right, so their case was not a bug. These are possibilities, not a universal diagnosis.
 
-No developer-tagged reply in that thread confirms a cause or fix. A post can help you decide where to look or what details to record, but it does not guarantee a location, replacement behavior, or a current patch outcome. Treat comments as Grade C evidence: player observations, not support documentation.
+No developer-tagged reply confirms a cause or fix. A post can guide inspection, but it does not guarantee a location, replacement behavior, or current outcome. Treat comments as Grade C player observations, not support documentation.
 
 ## When to Stop Repeating the Same Fix
 
-Stop repeating an action after one careful retry gives the same result. More clicks can obscure which state produced the problem, and repeated reassembly can create a second uncertainty. Instead, preserve the scene, capture the prompt and visible parts, and write down what happened immediately before the object seemed to disappear.
+Stop after one careful retry gives the same result. Repeated clicks can obscure the original state or create another uncertainty. Preserve the scene, prompt, visible parts, and the action before the object disappeared.
 
-The risky shortcuts have clear limits: a **guaranteed location is not confirmed**, a **replacement spawn is unconfirmed**, a **fixed input sequence is not guaranteed**, a **save repair has no official confirmation**, and a **universal fix is not supported**. Do not remove, overwrite, or otherwise force changes to save data. If the state blocks progress, send a focused report through the game's current support or community channel and include your build number when available.
+The risky shortcuts have clear limits: a **guaranteed location is not confirmed**, a **replacement spawn is unconfirmed**, a **fixed input sequence is not guaranteed**, a **save repair has no official confirmation**, and a **universal fix is not supported**. Do not force changes to save data. If progress is blocked, report the scene through a current support or community channel and include the build number.
 
 ## Missing Joystick Checklist
 
@@ -56,7 +56,7 @@ The risky shortcuts have clear limits: a **guaranteed location is not confirmed*
 9. Treat the December 2025 location and restart examples as player-reported, not guaranteed.
 10. Preserve save data and report a persistent blocker with evidence.
 
-This order separates observation from intervention. It also leaves a clear record if you need help, while avoiding claims that an older player outcome must work today.
+This order separates observation from intervention and leaves a useful record without assuming an older outcome works today.
 
 ## Frequently Asked Questions
 
