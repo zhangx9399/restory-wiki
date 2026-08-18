@@ -57,7 +57,7 @@ describe("HomePage", () => {
     const steamLink = screen.getByRole("link", { name: "Play on Steam ↗" });
     expect(steamLink).toHaveAttribute("href", siteConfig.steamUrl);
     expect(steamLink).toHaveAttribute("target", "_blank");
-    expect(steamLink).toHaveAttribute("rel", "noreferrer");
+    expect(steamLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("uses the approved section labels and introductory copy", () => {

@@ -21,7 +21,11 @@ export function SiteFooter() {
           <Link href={routes.home}>Home</Link>
           <Link href={routes.guide}>Guides</Link>
           <Link href={routes.cleaning}>Cleaning Guide</Link>
-          <a href={siteConfig.steamUrl} target="_blank" rel="noreferrer">
+          <a
+            href={siteConfig.steamUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Official Steam ↗
           </a>
         </nav>

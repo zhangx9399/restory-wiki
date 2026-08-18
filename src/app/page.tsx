@@ -86,7 +86,7 @@ export default function HomePage() {
                 className="action"
                 href={siteConfig.steamUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Play on Steam ↗
               </a>

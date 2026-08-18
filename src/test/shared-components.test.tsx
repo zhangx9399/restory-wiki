@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { GuideCard } from "@/components/guide-card";
 import { JsonLd } from "@/components/json-ld";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { GuideEntry } from "@/data/guides";
 
@@ -93,6 +94,10 @@ describe("SiteHeader", () => {
       "/system-requirements",
       "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/",
     ]);
+    expect(within(nav).getByRole("link", { name: "Official Steam" })).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
   });
 
   it("server-renders navigation in the unenhanced state", () => {
@@ -162,5 +167,15 @@ describe("SiteHeader", () => {
     } finally {
       document.removeEventListener("click", preventNavigation, true);
     }
+  });
+});
+
+describe("SiteFooter", () => {
+  it("opens the external Steam destination in a safe new tab", () => {
+    render(<SiteFooter />);
+
+    const link = screen.getByRole("link", { name: "Official Steam ↗" });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 });

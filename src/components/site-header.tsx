@@ -87,7 +87,7 @@ export function SiteHeader() {
             className="steam-link"
             href={siteConfig.steamUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             onClick={closeMenu}
           >
             Official Steam
