@@ -18,6 +18,7 @@ export const routes = {
   customizeDisplay: "/guide/customize-display/",
   systemRequirements: "/system-requirements/",
   painting: "/guide/painting/",
+  beginner: "/guide/beginner/",
 } as const;
 
 export const pageSeo = {
@@ -69,5 +70,12 @@ export const pageSeo = {
     description:
       "Learn what the Airbrush and color palettes do in ReStory, how painting differs from shop customization, and which painting details remain unconfirmed.",
     h1: "ReStory Painting Guide",
+  },
+  beginner: {
+    path: routes.beginner,
+    title: "ReStory Beginner Guide — Your First Repair Route",
+    description:
+      "Start ReStory with a practical first repair route, cleaning and reassembly basics, shop priorities, time management, and evidence-labeled next steps.",
+    h1: "ReStory Beginner Guide",
   },
 } as const;
