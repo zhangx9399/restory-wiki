@@ -345,15 +345,24 @@ describe.skipIf(!featureFilesExist)("device selling real MDX content contract", 
     );
     const officialGame =
       "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/";
-    const officialDemo =
-      "https://store.steampowered.com/app/4146680/ReStory_Chill_Electronic_Repairs_Demo/";
+    const officialDemoAnnouncement =
+      "https://store.steampowered.com/news/app/3812600/view/1835236783572908";
     const developerDiscussion =
       "https://steamcommunity.com/app/3812600/discussions/0/567037624436399525/";
+    const retiredDemo =
+      "https://store.steampowered.com/app/4146680/ReStory_Chill_Electronic_Repairs_Demo/";
+    const verifiedSourceAllowlist = [
+      officialGame,
+      officialDemoAnnouncement,
+      developerDiscussion,
+    ];
 
     expect(new Set(externalLinks).size).toBeGreaterThanOrEqual(3);
-    expect(externalLinks).toEqual(
-      expect.arrayContaining([officialGame, officialDemo, developerDiscussion]),
+    expect(externalLinks).toEqual(expect.arrayContaining(verifiedSourceAllowlist));
+    expect(externalLinks.every((url) => verifiedSourceAllowlist.includes(url))).toBe(
+      true,
     );
+    expect(mdx).not.toContain(retiredDemo);
     expect(mdx).toMatch(/Grade A — Official source/);
     expect(mdx).toMatch(/Grade B — Developer reply/);
     expect(mdx).toMatch(/Grade C — Player report/);
