@@ -346,16 +346,21 @@ describe.skipIf(!featureFilesExist)("device selling real MDX content contract", 
     const officialGame =
       "https://store.steampowered.com/app/3812600/ReStory_Chill_Electronic_Repairs/";
     const officialDemoAnnouncement =
-      "https://store.steampowered.com/news/app/3812600/view/1835236783572908";
+      "https://steamcommunity.com/games/3812600/announcements/detail/676245476355343487";
     const developerDiscussion =
       "https://steamcommunity.com/app/3812600/discussions/0/567037624436399525/";
     const retiredDemo =
       "https://store.steampowered.com/app/4146680/ReStory_Chill_Electronic_Repairs_Demo/";
+    const genericStoreNews =
+      "https://store.steampowered.com/news/app/3812600/view/1835236783572908";
     const verifiedSourceAllowlist = [
       officialGame,
       officialDemoAnnouncement,
       developerDiscussion,
     ];
+    const announcementNote = mdx
+      .split(/\n- /)
+      .find((paragraph) => paragraph.includes(officialDemoAnnouncement));
 
     expect(new Set(externalLinks).size).toBeGreaterThanOrEqual(3);
     expect(externalLinks).toEqual(expect.arrayContaining(verifiedSourceAllowlist));
@@ -363,6 +368,12 @@ describe.skipIf(!featureFilesExist)("device selling real MDX content contract", 
       true,
     );
     expect(mdx).not.toContain(retiredDemo);
+    expect(mdx).not.toContain(genericStoreNews);
+    expect(announcementNote).toMatch(
+      /repair shop.{0,100}device restoration.{0,100}online and in-person orders.{0,100}customer tips/i,
+    );
+    expect(announcementNote).toMatch(/does not document.{0,100}(?:sale|marketplace)/i);
+    expect(announcementNote).not.toMatch(/Airbrush|palettes?/i);
     expect(mdx).toMatch(/Grade A — Official source/);
     expect(mdx).toMatch(/Grade B — Developer reply/);
     expect(mdx).toMatch(/Grade C — Player report/);
